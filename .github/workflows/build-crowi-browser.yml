@@ -57,7 +57,7 @@ jobs:
         run: |
           ./mach bootstrap
 
-      - name: Install zstandard for artifact processing
+      - name: Install zstandard in Mozilla build Python
         shell: bash
         run: |
           ./mach python -m pip install zstandard
