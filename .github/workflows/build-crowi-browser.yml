@@ -55,7 +55,7 @@ jobs:
       - name: Bootstrap Firefox build environment
         shell: bash
         run: |
-          ./mach bootstrap --no-interactive --no-fork
+          ./mach bootstrap
 
       - name: Build Crowi Browser
         shell: bash
