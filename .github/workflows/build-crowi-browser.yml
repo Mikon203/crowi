@@ -16,30 +16,46 @@ on:
       - 'v*'
       - '*-release'
 
+permissions:
+  contents: write
+
 jobs:
   linux-build:
     name: Build Linux artifact
     runs-on: ubuntu-24.04
-    timeout-minutes: 1800
+    timeout-minutes: 360
     env:
-      MOZ_AUTOMATION: 1
       MOZ_NOSPAM: 1
-      MACH_BUILD_PYTHON: python3
       CI: true
+      BUILD_TYPE: ${{ github.event.inputs.build_type || 'release' }}
 
     steps:
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h /
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
+
+      - name: Verify branding directory
+        run: |
+          if [ ! -d browser/branding/crowi ]; then
+            echo "ERROR: browser/branding/crowi not found"
+            ls browser/branding
+            exit 1
+          fi
+          ls -la browser/branding/crowi
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Install Mozilla build dependencies
-        shell: bash
+      - name: Install build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -50,20 +66,67 @@ jobs:
             libxml2-dev libx11-dev libxrandr-dev \
             libxt-dev libgtk-3-dev libdbus-1-dev \
             libpulse-dev libasound2-dev \
-            ccache unzip wget python3-zstandard
+            ccache unzip wget
 
-      - name: Bootstrap Firefox build environment
-        shell: bash
-        run: |
-          ./mach bootstrap
+      - name: Cache toolchains and ccache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.mozbuild
+            ~/.cache/ccache
+          key: crowi-${{ runner.os }}-${{ env.BUILD_TYPE }}-${{ github.run_id }}
+          restore-keys: |
+            crowi-${{ runner.os }}-${{ env.BUILD_TYPE }}-
 
-      - name: Install zstandard in Mozilla build Python
-        shell: bash
+      - name: Write mozconfig
         run: |
-          ./mach python -m pip install zstandard
+          {
+            echo 'ac_add_options --enable-application=browser'
+            echo 'ac_add_options --with-branding=browser/branding/crowi'
+            echo 'ac_add_options --with-app-name=crowi'
+            echo 'ac_add_options --with-app-basename=Crowi'
+            echo 'ac_add_options --with-ccache'
+            echo 'mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-crowi'
+            if [ "$BUILD_TYPE" = "debug" ]; then
+              echo 'ac_add_options --enable-debug'
+              echo 'ac_add_options --disable-optimize'
+            else
+              echo 'ac_add_options --disable-debug'
+              echo 'ac_add_options --enable-optimize'
+              echo 'ac_add_options --disable-tests'
+            fi
+          } > "$GITHUB_WORKSPACE/mozconfig"
+          echo "MOZCONFIG=$GITHUB_WORKSPACE/mozconfig" >> "$GITHUB_ENV"
+          cat "$GITHUB_WORKSPACE/mozconfig"
+
+      - name: Bootstrap build environment
+        run: |
+          ./mach --no-interactive bootstrap --application-choice=browser
 
       - name: Build Crowi Browser
-        shell: bash
         run: |
-          if [ "${{ github.event.inputs.build_type || 'release' }}" = "](#)
-
+          ccache -M 10G
+          ./mach build
+
+      - name: Package
+        run: |
+          ./mach package
+
+      - name: Collect artifact
+        run: |
+          mkdir -p dist-out
+          cp obj-crowi/dist/*.tar.* dist-out/
+          ls -lh dist-out
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: crowi-browser-linux-${{ env.BUILD_TYPE }}
+          path: dist-out/*
+          retention-days: 14
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-out/*
