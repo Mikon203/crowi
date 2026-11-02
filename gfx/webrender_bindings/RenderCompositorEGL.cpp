@@ -371,4 +371,16 @@ void RenderCompositorEGL::SetBufferDamageRegion(const wr::DeviceIntRect* aRects,
   }
 }
 
+#ifdef MOZ_WIDGET_ANDROID
+bool RenderCompositorEGL::CaptureScreenPixels(
+    const gfx::IntRect& aSourceRect,
+    layers::AndroidHardwareBuffer* aHardwareBuffer) {
+  return CaptureScreenPixelsFromGL(
+      gl::GLContextEGL::Cast(mGL), aSourceRect, GetBufferSize(),
+      SurfaceOriginIsTopLeft() ? gl::OriginPos::TopLeft
+                               : gl::OriginPos::BottomLeft,
+      aHardwareBuffer);
+}
+#endif
+
 }  // namespace mozilla::wr

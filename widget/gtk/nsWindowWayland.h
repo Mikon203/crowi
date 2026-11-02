@@ -112,6 +112,7 @@ class nsWindowWaylandToplevel final : public nsWindowWayland {
 
   void EnableVSyncSource() override;
   void DisableVSyncSource() override;
+  void WatchHiddenVSyncSource() override;
 
   bool CreateRestoreSession(bool aRestoreWindow);
 

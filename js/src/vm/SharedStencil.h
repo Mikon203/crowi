@@ -794,8 +794,7 @@ struct MemberInitializers {
 #endif
   static constexpr uint32_t MaxInitializers = BitMask(NumBits);
 
-  // Classes with more all-zero fields than this fall back to the
-  // `.initializers` array.
+  // Classes with more fields than this fall back to the `.initializers` array.
   static constexpr size_t MaxInlinedFields = 8;
 
 #ifdef DEBUG

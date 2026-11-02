@@ -393,6 +393,12 @@ const StyleLockedDeclarationBlock* Gecko_GetViewTransitionDynamicRule(
   return vt->GetDynamicRuleFor(*aElement);
 }
 
+void Gecko_GetSubmitString(const Document* aDocument, nsAString* aResult) {
+  MOZ_ASSERT(NS_IsMainThread());
+  nsContentUtils::GetMaybeLocalizedString(PropertiesFile::FORMS_PROPERTIES,
+                                          "Submit", aDocument, *aResult);
+}
+
 const StyleLockedDeclarationBlock* Gecko_GetExtraContentStyleDeclarations(
     const Element* aElement) {
   if (const auto* cell = HTMLTableCellElement::FromNode(aElement)) {
@@ -540,8 +546,8 @@ void Gecko_UpdateAnimations(const Element* aElement,
   // Handle timeline scopes first, because our own scroll/view-linked animations
   // may be affected.
   if (aTasks & UpdateAnimationsTasks::TimelineScopes) {
-    presContext->TimelineManager()->UpdateTimelineScopes(element,
-                                                         aComputedData);
+    presContext->TimelineManager()->UpdateTimelineScopes(
+        const_cast<Element*>(element), aComputedData);
     // We could try to limit the impact here, at least for changes involving not
     // `all`. However, defer any such optimization until after bug 2024012.
     presContext->AnimationManager()->UpdateAllNamedTimelineAnimations();
@@ -1277,12 +1283,14 @@ void ShutdownServo() {
   URLExtraData::Shutdown();
 }
 
-void AssertIsMainThreadOrServoFontMetricsLocked() {
+#ifdef DEBUG
+void AssertIsMainThreadOrServoFFILocked() {
   if (!NS_IsMainThread()) {
     MOZ_ASSERT(sServoFFILock);
     sServoFFILock->AssertCurrentThreadOwns();
   }
 }
+#endif
 
 }  // namespace mozilla
 

@@ -2201,6 +2201,11 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
     return FALSE;
   }
 
+  // It's possible we're still hidden although we get 'draw' (on-expose) event
+  // from Gtk3. Add explicit check for it to avoid painting to hidden
+  // window.
+  WatchHiddenVSyncSource();
+
   // Send any pending resize events so that layout can update. May run event
   // loop and destroy us.
   MaybeRecomputeBounds();

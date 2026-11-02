@@ -2809,6 +2809,18 @@ export const MozAdsReportReason = Object.freeze(/** @lends MozAdsReportReason */
      * SEEN_TOO_MANY_TIMES
      */
     SEEN_TOO_MANY_TIMES: 2,
+    /**
+     * SCAM
+     */
+    SCAM: 3,
+    /**
+     * MISLEADING
+     */
+    MISLEADING: 4,
+    /**
+     * OFFENSIVE
+     */
+    OFFENSIVE: 5,
 });
 
 // Export the FFIConverter object to make external types work.
@@ -2824,6 +2836,12 @@ export class FfiConverterTypeMozAdsReportReason extends FfiConverterArrayBuffer 
                 return MozAdsReportReason.NOT_INTERESTED
             case 3:
                 return MozAdsReportReason.SEEN_TOO_MANY_TIMES
+            case 4:
+                return MozAdsReportReason.SCAM
+            case 5:
+                return MozAdsReportReason.MISLEADING
+            case 6:
+                return MozAdsReportReason.OFFENSIVE
             default:
                 throw new UniFFITypeError("Unknown MozAdsReportReason variant");
         }
@@ -2841,6 +2859,18 @@ export class FfiConverterTypeMozAdsReportReason extends FfiConverterArrayBuffer 
         }
         if (value === MozAdsReportReason.SEEN_TOO_MANY_TIMES) {
             dataStream.writeInt32(3);
+            return;
+        }
+        if (value === MozAdsReportReason.SCAM) {
+            dataStream.writeInt32(4);
+            return;
+        }
+        if (value === MozAdsReportReason.MISLEADING) {
+            dataStream.writeInt32(5);
+            return;
+        }
+        if (value === MozAdsReportReason.OFFENSIVE) {
+            dataStream.writeInt32(6);
             return;
         }
         throw new UniFFITypeError("Unknown MozAdsReportReason variant");
@@ -3850,15 +3880,6 @@ export class MozAdsClientBuilderInterface {
       throw Error("environment not implemented");
     }
     /**
-     * storeConfig
-     * @param {MozAdsStoreConfig} storeConfig
-     * @returns {MozAdsClientBuilder}
-     */
-    storeConfig(
-        storeConfig) {
-      throw Error("storeConfig not implemented");
-    }
-    /**
      * telemetry
      * @param {MozAdsTelemetry} telemetry
      * @returns {MozAdsClientBuilder}
@@ -3963,27 +3984,6 @@ export class MozAdsClientBuilder extends MozAdsClientBuilderInterface {
     }
 
     /**
-     * storeConfig
-     * @param {MozAdsStoreConfig} storeConfig
-     * @returns {MozAdsClientBuilder}
-     */
-    storeConfig(
-        storeConfig) {
-       
-        FfiConverterTypeMozAdsStoreConfig.checkType(storeConfig);
-        const result = UniFFIScaffolding.callSync(
-            51, // uniffi_ads_client_fn_method_mozadsclientbuilder_store_config
-            FfiConverterTypeMozAdsClientBuilder.lowerReceiver(this),
-            FfiConverterTypeMozAdsStoreConfig.lower(storeConfig),
-        )
-        return handleRustResult(
-            result,
-            FfiConverterTypeMozAdsClientBuilder.lift.bind(FfiConverterTypeMozAdsClientBuilder),
-            null,
-        )
-    }
-
-    /**
      * telemetry
      * @param {MozAdsTelemetry} telemetry
      * @returns {MozAdsClientBuilder}
@@ -3993,7 +3993,7 @@ export class MozAdsClientBuilder extends MozAdsClientBuilderInterface {
        
         FfiConverterTypeMozAdsTelemetry.checkType(telemetry);
         const result = UniFFIScaffolding.callSync(
-            52, // uniffi_ads_client_fn_method_mozadsclientbuilder_telemetry
+            51, // uniffi_ads_client_fn_method_mozadsclientbuilder_telemetry
             FfiConverterTypeMozAdsClientBuilder.lowerReceiver(this),
             FfiConverterTypeMozAdsTelemetry.lower(telemetry),
         )

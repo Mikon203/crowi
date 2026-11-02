@@ -553,6 +553,7 @@ android-hw-a55-14-0-aarch64-nightlyasrelease/opt:
     build-platform: android-aarch64-nightlyasrelease/opt
     test-sets:
         - android-hw-speedometer3-nightlyasrelease
+        - android-hw-nav-bench-nightlyasrelease
 
 android-hw-a55-14-0-aarch64/opt:
     build-platform: android-aarch64/opt

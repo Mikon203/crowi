@@ -201,13 +201,12 @@ mozilla::ipc::IPCResult CanvasManagerParent::RecvGetSnapshot(
   webgl::FrontBufferSnapshotIpc buffer;
   if (RefPtr<dom::WebGLParent> webgl =
           mozilla::ipc::ActorDynCast<dom::WebGLParent>(actor)) {
-    mozilla::ipc::IPCResult rv = webgl->GetFrontBufferSnapshot(&buffer, this);
+    mozilla::ipc::IPCResult rv = webgl->GetFrontBufferSnapshot(&buffer);
     if (!rv) {
       return rv;
     }
   } else if (RefPtr<webgpu::WebGPUParent> webgpu =
                  mozilla::ipc::ActorDynCast<webgpu::WebGPUParent>(actor)) {
-    IntSize size;
     if (aOwnerId.isNothing()) {
       return IPC_FAIL(this, "invalid OwnerId");
     }
@@ -217,16 +216,16 @@ mozilla::ipc::IPCResult CanvasManagerParent::RecvGetSnapshot(
     if (aCommandBufferId.isNothing()) {
       return IPC_FAIL(this, "invalid CommandBufferId");
     }
-    uint32_t stride = 0;
+    webgpu::FrontBufferSnapshot snapshot;
     mozilla::ipc::IPCResult rv = webgpu->GetFrontBufferSnapshot(
-        this, *aOwnerId, *aCommandEncoderId, *aCommandBufferId, buffer.shmem,
-        size, stride);
+        *aOwnerId, *aCommandEncoderId, *aCommandBufferId, snapshot);
     if (!rv) {
       return rv;
     }
-    buffer.surfSize.x = static_cast<uint32_t>(size.width);
-    buffer.surfSize.y = static_cast<uint32_t>(size.height);
-    buffer.byteStride = stride;
+    buffer.shmem = std::move(snapshot.handle);
+    buffer.surfSize.x = snapshot.width;
+    buffer.surfSize.y = snapshot.height;
+    buffer.byteStride = snapshot.byteStride;
   } else {
     return IPC_FAIL(this, "unsupported protocol");
   }

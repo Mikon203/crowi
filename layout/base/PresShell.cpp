@@ -1562,6 +1562,14 @@ Selection* PresShell::GetSelection(RawSelectionType aRawSelectionType) {
   return mSelection->GetSelection(ToSelectionType(aRawSelectionType));
 }
 
+Selection* PresShell::GetExistingSelection(RawSelectionType aRawSelectionType) {
+  if (!mSelection) {
+    return nullptr;
+  }
+
+  return mSelection->GetExistingSelection(ToSelectionType(aRawSelectionType));
+}
+
 Selection* PresShell::GetCurrentSelection(SelectionType aSelectionType) {
   if (!mSelection) {
     return nullptr;
@@ -3061,8 +3069,7 @@ static void AssertNoFramesOrStyleDataInDescendants(Element& aElement) {
     if (c == &aElement) {
       continue;
     }
-    // FIXME(emilio): The <area> check is needed because of bug 135040.
-    MOZ_ASSERT(!c->GetPrimaryFrame() || c->IsHTMLElement(nsGkAtoms::area));
+    MOZ_ASSERT(!c->GetPrimaryFrame());
     MOZ_ASSERT(!c->IsElement() || !c->AsElement()->HasServoData());
   }
 }
@@ -3790,7 +3797,8 @@ nsresult PresShell::ScrollContentIntoView(nsIContent* aContent,
   // after scrolling. https://drafts.csswg.org/css-contain-2/#cv-notes
   bool reflowedForHiddenContent = false;
   if (mContentToScrollTo) {
-    if (nsIFrame* frame = mContentToScrollTo->GetPrimaryFrame()) {
+    if (nsIFrame* frame =
+            nsLayoutUtils::GetPrimaryOrAreaImageFrame(mContentToScrollTo)) {
       bool hasContentVisibilityAutoAncestor = false;
       auto* ancestor = frame->GetClosestContentVisibilityAncestor(
           nsIFrame::IncludeContentVisibility::Auto);
@@ -3859,7 +3867,8 @@ static nsMargin GetScrollMargin(const nsIFrame* aFrame) {
 void PresShell::DoScrollContentIntoView() {
   NS_ASSERTION(mDidInitialize, "should have done initial reflow by now");
 
-  nsIFrame* frame = mContentToScrollTo->GetPrimaryFrame();
+  nsIFrame* frame =
+      nsLayoutUtils::GetPrimaryOrAreaImageFrame(mContentToScrollTo);
 
   if (mContentToScrollTo->OwnerDoc() != mDocument || !frame ||
       frame->IsHiddenByContentVisibilityOnAnyAncestor(
@@ -4223,7 +4232,9 @@ bool PresShell::ScrollFrameIntoView(
         int32_t parentAPD = parent->PresContext()->AppUnitsPerDevPixel();
         rect = rect.ScaleToOtherAppUnitsRoundOut(APD, parentAPD);
         rect += extraOffset;
-      } else {
+      } else if (!container->PresContext()
+                      ->Document()
+                      ->IsTopLevelContentDocument()) {
         nsCOMPtr<nsIDocShell> docShell =
             container->PresContext()->GetDocShell();
         if (BrowserChild* browserChild = BrowserChild::GetFrom(docShell)) {
@@ -4273,7 +4284,8 @@ void PresShell::ClearMouseCapture(nsIFrame* aFrame) {
     return;
   }
 
-  nsIFrame* capturingFrame = capturingContent->GetPrimaryFrame();
+  nsIFrame* capturingFrame =
+      nsLayoutUtils::GetPrimaryOrAreaImageFrame(capturingContent);
   const bool shouldClear =
       !capturingFrame ||
       nsLayoutUtils::IsAncestorFrameCrossDocInProcess(aFrame, capturingFrame);
@@ -6908,7 +6920,8 @@ nsIFrame* PresShell::GetCurrentEventFrame() {
   // to try and find the frame.
   nsIContent* content = GetCurrentEventContent();
   if (!mCurrentEventTarget.mFrame && content) {
-    mCurrentEventTarget.mFrame = content->GetPrimaryFrame();
+    mCurrentEventTarget.mFrame =
+        nsLayoutUtils::GetPrimaryOrAreaImageFrame(content);
     MOZ_ASSERT_IF(
         mCurrentEventTarget.mFrame,
         mCurrentEventTarget.mFrame->PresContext()->GetPresShell() == this);
@@ -8038,7 +8051,8 @@ PresShell::EventHandler::EventTargetDataWithCapture::EventTargetDataWithCapture(
        !GetFrameContent() ||
        !nsContentUtils::ContentIsCrossDocDescendantOf(GetFrameContent(),
                                                       mCapturingContent))) {
-    if (nsIFrame* const capturingFrame = mCapturingContent->GetPrimaryFrame()) {
+    if (nsIFrame* const capturingFrame =
+            nsLayoutUtils::GetPrimaryOrAreaImageFrame(mCapturingContent)) {
       SetFrameAndComputePresShell(capturingFrame);
     }
   }
@@ -8275,7 +8289,7 @@ bool PresShell::EventHandler::DispatchPrecedingPointerEvent(
   }
 
   aEventTargetData->SetFrameAndContent(
-      mouseOrTouchEventTargetContent->GetPrimaryFrame(),
+      nsLayoutUtils::GetPrimaryOrAreaImageFrame(mouseOrTouchEventTargetContent),
       mouseOrTouchEventTargetContent);
   aEventTargetData->mPresShell =
       mouseOrTouchEventTargetContent->IsInComposedDoc()
@@ -10011,7 +10025,8 @@ void PresShell::EventHandler::DispatchTouchEventToDOM(
         // XXXsmaug huge hack. Pushing possibly capturing content,
         //         even though event target is something else.
         contentPresShell->PushCurrentEventInfo(EventTargetInfo(
-            newEvent.mMessage, content->GetPrimaryFrame(), content));
+            newEvent.mMessage,
+            nsLayoutUtils::GetPrimaryOrAreaImageFrame(content), content));
       }
     }
 
@@ -10253,7 +10268,7 @@ bool PresShell::EventHandler::PrepareToUseCaretPosition(
                                   WhenToScroll::IfNotVisible),
                  ScrollFlags::ScrollOverflowHidden);
     NS_ENSURE_SUCCESS(rv, false);
-    frame = content->GetPrimaryFrame();
+    frame = nsLayoutUtils::GetPrimaryOrAreaImageFrame(content);
     NS_WARNING_ASSERTION(frame, "No frame for focused content?");
   }
 
@@ -10382,7 +10397,8 @@ void PresShell::EventHandler::GetCurrentItemAndPositionForElement(
     focusedContent = item;
   }
 
-  if (nsIFrame* frame = focusedContent->GetPrimaryFrame()) {
+  if (nsIFrame* frame =
+          nsLayoutUtils::GetPrimaryOrAreaImageFrame(focusedContent)) {
     NS_ASSERTION(
         frame->PresContext() == GetPresContext(),
         "handling event for focused content that is not in our document?");
@@ -12938,7 +12954,7 @@ void PresShell::EventHandler::EventTargetData::
   // If clicking an image map, mFrame should be the image frame, but mContent
   // should be the area element which handles the event at the position.
   if (mContent->IsHTMLElement(nsGkAtoms::area)) {
-    MOZ_ASSERT(mContent->GetPrimaryFrame() == mFrame);
+    MOZ_ASSERT(nsLayoutUtils::GetPrimaryOrAreaImageFrame(mContent) == mFrame);
     return;
   }
 
@@ -13107,6 +13123,7 @@ void PresShell::EndPaint() {
       if (PerformanceMainThread* perf =
               presContext->GetPerformanceMainThread()) {
         perf->FinalizeLCPEntriesForText();
+        perf->QueuePendingLCPCandidate();
         perf->FinalizeContainerTimingEntries();
       }
     }

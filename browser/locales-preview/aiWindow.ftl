@@ -345,7 +345,11 @@ ai-tasks-alert-history-error-unknown = Something went wrong on our side and this
 
 # The feature name. It stays here rather than in brandings.ftl until the Smart
 # Page strings are exposed to localization.
--smart-page-brand-name = Smart Page
+-smart-page-brand-name =
+    { $plural-form ->
+        [true] Smart Pages
+       *[false] Smart Page
+    }
 
 # Title given to a generated page when the model returns no title of its own and
 # the user did not say what the page should focus on.
@@ -354,9 +358,12 @@ ai-tab-default-page-title = Generated page
 # Shown in place of a generated page when it can't be displayed, for
 # example because the user deleted it, the address is wrong, or it
 # failed to load.
-aitab-page-error-heading = This page isn’t available anymore.
-# TODO - Bug 2075639: update this string based on UX feedback
-aitab-page-error-description = Some other supplementary string.
+aitab-page-error-heading = This { -smart-page-brand-name } isn’t available
+# Introduces the list of possible reasons the page can’t be displayed.
+aitab-page-error-intro = Here’s what may have happened:
+aitab-page-error-reason-deleted = <strong>The page was deleted.</strong> To create a new one, go to another tab in { -smart-window-brand-name } and ask in the sidebar.
+aitab-page-error-reason-incorrect-link = <strong>The link is incorrect.</strong> Search for the page by name in the address bar.
+aitab-page-error-reason-shared-link = <strong>The link was shared with you.</strong> { -smart-page-brand-name(plural-form: "true") } can’t be shared by link. Ask the sender for a PDF instead.
 
 # Page context menu entry that builds a generated page from the current page.
 main-context-menu-create-aitab =

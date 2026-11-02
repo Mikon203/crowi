@@ -1864,9 +1864,9 @@ bool gfxFontUtils::IsCffFont(const uint8_t* aFontData) {
 }
 
 #ifdef DEBUG
-/* static */ void gfxFontUtils::AssertSafeThreadOrServoFontMetricsLocked() {
+/* static */ void gfxFontUtils::AssertSafeThreadOrServoFFILocked() {
   if (!dom::GetCurrentThreadWorkerPrivate()) {
-    AssertIsMainThreadOrServoFontMetricsLocked();
+    mozilla::AssertIsMainThreadOrServoFFILocked();
   }
 }
 #endif

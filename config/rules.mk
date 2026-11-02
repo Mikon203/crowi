@@ -554,6 +554,13 @@ endif # WINNT
 endif
 endef
 
+# Binaries installed into dist/bin/gtest (the gtest libxul and the libraries
+# its tests load) are only used by gtest runs. Keep their symbols out of the
+# main symbols archive, so that other tasks don't have to download them.
+ifneq (,$(filter $(DIST)/bin/gtest%,$(FINAL_TARGET)))
+DUMP_SYMBOLS_FLAGS += --symbols-dir=crashreporter-symbols-gtest
+endif
+
 ifneq (,$(filter $(DIST)/bin%,$(FINAL_TARGET)))
 DUMP_SYMS_TARGETS := $(filter-out $(MOZBUILD_NON_DEFAULT_TARGETS),$(SHARED_LIBRARY) $(PROGRAM) $(SIMPLE_PROGRAMS) $(RUST_PROGRAMS))
 endif

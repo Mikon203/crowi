@@ -522,19 +522,55 @@ void VulkanProbeFormat(AVCodecID aCodecID, const MediaByteBuffer* aExtraData,
 
 }  // namespace
 
-void FFmpegVideoDecoder<LIBAV_VER>::FFmpegVulkanVideoDecoder::
+bool FFmpegVideoDecoder<LIBAV_VER>::FFmpegVulkanVideoDecoder::
     CheckDecodeCapabilities(AVCodecID aCodecID,
                             AVBufferRef* aVulkanDeviceContext,
                             const MediaByteBuffer* aExtraData,
                             gfx::ColorDepth aColorDepth) {
   mDriverDistinctDpb = false;
   if (!aVulkanDeviceContext) {
-    return;
+    return false;
   }
 
   const auto* devCtx =
       reinterpret_cast<AVHWDeviceContext*>(aVulkanDeviceContext->data);
   const auto* vkCtx = reinterpret_cast<AVVulkanDeviceContext*>(devCtx->hwctx);
+
+  const char* requiredVideoCodecExtension;
+  switch (aCodecID) {
+    case AV_CODEC_ID_H264:
+      requiredVideoCodecExtension = "VK_KHR_video_decode_h264";
+      break;
+    case AV_CODEC_ID_HEVC:
+      requiredVideoCodecExtension = "VK_KHR_video_decode_h265";
+      break;
+#  if LIBAVCODEC_VERSION_MAJOR >= 61
+    case AV_CODEC_ID_AV1:
+      requiredVideoCodecExtension = "VK_KHR_video_decode_av1";
+      break;
+#  endif
+#  if LIBAVCODEC_VERSION_MAJOR >= 62
+    case AV_CODEC_ID_VP9:
+      requiredVideoCodecExtension = "VK_KHR_video_decode_vp9";
+      break;
+#  endif
+    default:
+      return false;
+  }
+
+  bool extensionEnabled = false;
+  for (int i = 0; i < vkCtx->nb_enabled_dev_extensions; ++i) {
+    if (strcmp(vkCtx->enabled_dev_extensions[i], requiredVideoCodecExtension) ==
+        0) {
+      extensionEnabled = true;
+      break;
+    }
+  }
+  if (!extensionEnabled) {
+    FFMPEGV_LOG("Skipping Vulkan decode: required extension {} is not enabled",
+                requiredVideoCodecExtension);
+    return false;
+  }
 
   gfx::ColorDepth chromaDepth;
   VkVideoChromaSubsamplingFlagBitsKHR chroma;
@@ -579,6 +615,7 @@ void FFmpegVideoDecoder<LIBAV_VER>::FFmpegVulkanVideoDecoder::
   mDriverDistinctDpb =
       decCaps && (decCaps->flags &
                   VK_VIDEO_DECODE_CAPABILITY_DPB_AND_OUTPUT_DISTINCT_BIT_KHR);
+  return true;
 }
 
 bool FFmpegVideoDecoder<LIBAV_VER>::FFmpegVulkanVideoDecoder::

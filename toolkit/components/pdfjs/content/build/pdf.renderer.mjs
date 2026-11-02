@@ -20,8 +20,8 @@
  */
 
 /**
- * pdfjsVersion = 6.5.390
- * pdfjsBuild = ea6cf5c98
+ * pdfjsVersion = 6.5.422
+ * pdfjsBuild = 22f5df126
  */
 
 ;// ./src/shared/util.js
@@ -4566,24 +4566,25 @@ class CanvasGraphics {
         scaledY = 0;
       }
       const glyphWidth = glyph.isRotated ? glyph.width : width;
+      let characterScaleX = 1;
       if ((font.remeasure || glyph.isRotated) && glyphWidth > 0) {
         measure ??= ctx.measureText(character);
         const measuredWidth = measure.width * 1000 / fontSize * fontSizeScale;
         if (glyphWidth < measuredWidth && this.isFontSubpixelAAEnabled) {
-          const characterScaleX = glyphWidth / measuredWidth;
+          characterScaleX = glyphWidth / measuredWidth;
           if (!restoreNeeded) {
             restoreNeeded = true;
             ctx.save();
           }
           ctx.scale(characterScaleX, 1);
           scaledX /= characterScaleX;
-          if (font.missingFile && (patternFillTransform || patternStrokeTransform)) {
-            glyphPatterns ||= new Map();
-            [ctx.fillStyle, ctx.strokeStyle] = glyphPatterns.getOrInsertComputed(glyph.isRotated ? -characterScaleX : characterScaleX, () => [patternFillTransform ? this.#getTextPattern(current.fillColor, PathType.FILL, opIdx)[0] : ctx.fillStyle, patternStrokeTransform ? this.#getTextPattern(current.strokeColor, PathType.STROKE, opIdx)[0] : ctx.strokeStyle]);
-          }
         } else if (glyphWidth !== measuredWidth) {
           scaledX += (glyphWidth - measuredWidth) / 2000 * fontSize / fontSizeScale;
         }
+      }
+      if (restoreNeeded && font.missingFile && (patternFillTransform || patternStrokeTransform)) {
+        glyphPatterns ||= new Map();
+        [ctx.fillStyle, ctx.strokeStyle] = glyphPatterns.getOrInsertComputed(glyph.isRotated ? -characterScaleX : characterScaleX, () => [patternFillTransform ? this.#getTextPattern(current.fillColor, PathType.FILL, opIdx)[0] : ctx.fillStyle, patternStrokeTransform ? this.#getTextPattern(current.strokeColor, PathType.STROKE, opIdx)[0] : ctx.strokeStyle]);
       }
       if (this.contentVisible && (glyph.isInFont || font.missingFile)) {
         if (simpleFillText && !accent) {
@@ -7129,6 +7130,7 @@ class RendererMessageHandler {
   static #fontLoader = new FontLoader({
     ownerDocument: globalThis
   });
+  static #hasMeshPattern = false;
   static #objsMap = new Map();
   static #operatorLists = new Map();
   static #renderTaskStates = new Map();
@@ -7326,8 +7328,19 @@ class RendererMessageHandler {
       pageCache: this.#objsMap,
       shouldCreatePageObjs: true
     });
-    handler.on("commonobj", ([id, type, exportedData]) => this.#commonObjs.has(id) ? null : objectHandler.resolveCommonObject(id, type, exportedData));
+    handler.on("commonobj", ([id, type, exportedData]) => {
+      if (this.#commonObjs.has(id)) {
+        return;
+      }
+      objectHandler.resolveCommonObject(id, type, exportedData);
+      if (type === "Pattern" && this.#commonObjs.get(id)[0] === "Mesh") {
+        this.#hasMeshPattern = true;
+      }
+    });
     handler.on("obj", ([id, pageProxyId, type, imageData]) => {
+      if (type === "Pattern" && imageData[0] === "Mesh") {
+        this.#hasMeshPattern = true;
+      }
       objectHandler.resolveObject(id, pageProxyId, type, imageData);
     });
     handler.on("objFailed", ({
@@ -7427,12 +7440,6 @@ class RendererMessageHandler {
       };
       this.#renderTaskStates.set(renderTaskId, renderTaskState);
       try {
-        if (this.#enableWebGPU) {
-          await initGPU();
-          if (renderTaskState.aborted) {
-            return;
-          }
-        }
         const objs = this.#getPageObjs(pageProxyId);
         const optionalContentConfig = OptionalContentConfig.fromSerializable(data.optionalContentConfig);
         const canvasFactory = this.#canvasFactory ??= new OffscreenCanvasFactory({
@@ -7479,6 +7486,15 @@ class RendererMessageHandler {
           operatorListIdx,
           aborted: true
         };
+      }
+      if (this.#hasMeshPattern && this.#enableWebGPU && !isGPUReady()) {
+        await initGPU();
+        if (renderTaskState.aborted) {
+          return {
+            operatorListIdx,
+            aborted: true
+          };
+        }
       }
       renderTaskState.operatorListIdx = operatorListIdx;
       this.#appendFromSharedOperatorList(renderTaskState, operatorListLength, operationsFilterMask, lastChunk);
@@ -7537,6 +7553,7 @@ class RendererMessageHandler {
     }
     this.#objsMap.clear();
     this.#operatorLists.clear();
+    this.#hasMeshPattern = false;
     this.#commonObjs.clear();
     this.#fontLoader.clear();
     this.#commonObjs = new PDFObjects();
@@ -7551,7 +7568,7 @@ class RendererMessageHandler {
     this.#connection = null;
   }
   static #sendReady(handler) {
-    const workerVersion = "6.5.390";
+    const workerVersion = "6.5.422";
     const testObj = new Uint8Array();
     handler.send("ready", {
       testObj,

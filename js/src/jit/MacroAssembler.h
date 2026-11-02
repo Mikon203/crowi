@@ -2070,6 +2070,13 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void branchTestNull(Condition cond, const ValueOperand& value,
                              Label* label) PER_SHARED_ARCH;
 
+  // Branch if the value is null or undefined (Equal) or neither (NotEqual).
+  inline void branchTestNullOrUndefined(Condition cond, Register tag,
+                                        Label* label) PER_SHARED_ARCH;
+  inline void branchTestNullOrUndefined(Condition cond,
+                                        const ValueOperand& value,
+                                        Label* label) PER_ARCH;
+
   // Clobbers the ScratchReg on x64.
   inline void branchTestObject(Condition cond, const Address& address,
                                Label* label) PER_SHARED_ARCH;
@@ -5880,6 +5887,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
                               uint32_t end);
   void fillSlotsWithUninitialized(Address addr, Register temp, uint32_t start,
                                   uint32_t end);
+  // Store all four fields of the ObjectElements header that starts at
+  // |header|.
+  void storeElementsHeader(const Address& header, uint32_t flags,
+                           uint32_t initializedLength, uint32_t capacity,
+                           uint32_t length);
 
   void initGCSlots(Register obj, Register temp,
                    const TemplateNativeObject& templateObj);

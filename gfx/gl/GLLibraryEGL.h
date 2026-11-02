@@ -79,6 +79,7 @@ enum class EGLLibExtension {
   ANGLE_platform_angle_d3d,
   ANGLE_platform_angle_metal,
   ANGLE_platform_angle_opengl,
+  ANGLE_platform_angle_display_key,
   ANGLE_platform_angle_device_id,
   EXT_device_enumeration,
   EXT_device_query,
@@ -201,6 +202,10 @@ class GLLibraryEGL final {
   std::shared_ptr<EglDisplay> CreateDisplay(ID3D11Device*);
   std::shared_ptr<EglDisplay> CreateDisplayForMetalDevice(
       uint64_t aMetalDeviceRegistryID);
+#ifdef MOZ_WIDGET_ANDROID
+  std::shared_ptr<EglDisplay> CreateDisplayForWebRenderAndroidGLES(
+      nsACString* const out_failureId);
+#endif
   std::shared_ptr<EglDisplay> DefaultDisplay(nsACString* const out_failureId);
 
   bool IsExtensionSupported(EGLLibExtension aKnownExtension) const {

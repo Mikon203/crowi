@@ -52,6 +52,7 @@ class AutoAllocInAtomsZone;
 class AutoMaybeLeaveAtomsZone;
 class AutoRealm;
 struct PortableBaselineStack;
+struct TestingFunctionData;
 
 #ifdef MOZ_EXECUTION_TRACING
 class ExecutionTracer;
@@ -160,13 +161,21 @@ class MicroTaskQueueElement {
     // A settled, same-realm promise reaction held inline in the task's payload
     // rather than allocated as a PromiseReactionRecord.
     InlinePromiseReaction,
+    // A same-realm thenable job held inline in the task's payload rather than
+    // allocated as a ThenableJobObject. jsBits_ holds one of the thenable job
+    // kinds below.
+    InlineThenable,
 
     // A ThenableJobObject; the kind selects which resolution routine it runs.
+    //
+    // Start ThenableJobKinds
     ResolveThenable,
     ResolveBuiltinThenable,
     // Used by JS::SafeResolve: runs PerformPromiseResolution on the job's
     // promise with the resolution value stored in the Thenable slot.
     DeferredResolve,
+    // End ThenableJobKinds -- must be contiguous for the range check in
+    // IsThenableJobKind.
 
     // New task kinds go here.
 
@@ -1225,6 +1234,21 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
 #endif
 
   JS::PersistentRooted<js::UniquePtr<js::MicroTaskQueueSet>> microTaskQueues;
+
+ private:
+  js::ContextData<js::UniquePtr<js::TestingFunctionData>> testingFunctionData_;
+
+ public:
+  js::TestingFunctionData* getOrCreateTestingFunctionData();
+
+  js::TestingFunctionData* maybeTestingFunctionData() {
+    return testingFunctionData_.ref().get();
+  }
+
+  js::TestingFunctionData& testingFunctionData() {
+    MOZ_ASSERT(testingFunctionData_.ref());
+    return *testingFunctionData_.ref();
+  }
 }; /* struct JSContext */
 
 inline JSContext* JSRuntime::mainContextFromOwnThread() {

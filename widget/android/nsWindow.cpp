@@ -556,7 +556,7 @@ class NPZCSupport final
 
  public:
   int32_t HandleMouseEvent(int32_t aAction, int64_t aTime, int32_t aMetaState,
-                           float aX, float aY, int buttons) {
+                           float aX, float aY, int buttons, int32_t aToolType) {
     MOZ_ASSERT(AndroidBridge::IsJavaUiThread());
 
     RefPtr<IAPZCTreeManager> controller;
@@ -621,10 +621,13 @@ class NPZCSupport final
 
     ScreenPoint origin = ScreenPoint(aX, aY);
 
+    uint16_t inputSource = aToolType == java::sdk::MotionEvent::TOOL_TYPE_STYLUS
+                               ? MouseEvent_Binding::MOZ_SOURCE_PEN
+                               : MouseEvent_Binding::MOZ_SOURCE_MOUSE;
+
     MouseInput input(
-        mouseType, buttonType, MouseEvent_Binding::MOZ_SOURCE_MOUSE,
-        ConvertButtons(buttons), origin, nsWindow::GetEventTimeStamp(aTime),
-        nsWindow::GetModifiers(aMetaState));
+        mouseType, buttonType, inputSource, ConvertButtons(buttons), origin,
+        nsWindow::GetEventTimeStamp(aTime), nsWindow::GetModifiers(aMetaState));
 
     APZEventResult result = controller->Bridge()->ReceiveInputEvent(input);
     if (result.GetStatus() == nsEventStatus_eConsumeNoDefault) {
@@ -1736,12 +1739,12 @@ class LayerViewSupport final
     MOZ_RELEASE_ASSERT(aHardwareBuffer->mFormat == SurfaceFormat::R8G8B8A8);
 
     UniqueFileHandle acquireFence = aHardwareBuffer->GetAndResetAcquireFence();
-    uint8_t* srcBuf;
+    uint8_t* srcBuf = nullptr;
     res = AHardwareBuffer_lock(aHardwareBuffer->GetNativeBuffer(),
                                AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN,
                                acquireFence.release(), nullptr,
                                reinterpret_cast<void**>(&srcBuf));
-    if (res < 0) {
+    if (res) {
       result->CompleteExceptionally(
           java::sdk::IllegalStateException::New(
               "Failed to lock screen pixels HardwareBuffer")
@@ -1751,6 +1754,7 @@ class LayerViewSupport final
     auto hardwareBufferUnlock = MakeScopeExit([&]() {
       AHardwareBuffer_unlock(aHardwareBuffer->GetNativeBuffer(), nullptr);
     });
+    MOZ_RELEASE_ASSERT(srcBuf);
 
     uint8_t* destBuf;
     res = AndroidBitmap_lockPixels(env, bitmap.Get(),

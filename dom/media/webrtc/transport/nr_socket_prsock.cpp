@@ -745,8 +745,7 @@ int NrSocket::sendto(const void* msg, size_t len, int flags,
   }
 
   // Block outgoing packets to ports that are not allowed for webrtc. This runs
-  // in whatever process opened the socket -- the socket process (socket-process
-  // mtransport) or the parent process -- never the content process, which uses
+  // in the parent process, never the content process, which uses
   // NrUdpSocketIpc/NrTcpSocket (gated in NrUdpSocketIpc::sendto and enforced by
   // STUNUDPSocketFilter in the parent process).
   if (IsForbiddenAddress(to)) {
@@ -1600,12 +1599,6 @@ int NrSocketBase::CreateSocket(
   if (XRE_IsParentProcess()) {
     // TODO: Make NrTcpSocket work on the parent process
     *sock = new NrSocket();
-  } else if (XRE_IsSocketProcess()) {
-    if (addr->protocol == IPPROTO_TCP) {
-      *sock = new NrTcpSocket(config);
-    } else {
-      *sock = new NrSocket();
-    }
   } else {
     if (addr->protocol == IPPROTO_TCP) {
       *sock = new NrTcpSocket(config);

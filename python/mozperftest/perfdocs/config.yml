@@ -131,6 +131,7 @@ suites:
             "browser_removeManySpellingErrors.js": ""
             "browser_implicitRoleARIAExpanded.js": ""
             "browser_panManySVGShapes.js": ""
+            "browser_testCSSVisibilityChange.js": ""
 
     toolkit/components/places/tests/browser/performance:
         description: "Performance tests for Toolkit: Places"

@@ -32,12 +32,6 @@ let ignoreList = [
       /Error in parsing value for ‘color: -moz-inherit-from-body;’./i,
     isFromDevTools: false,
   },
-  // content: -moz-alt-content is UA-only.
-  {
-    sourceName: /\b(html)\.css$/i,
-    errorMessage: /Error in parsing value for ‘content:/i,
-    isFromDevTools: false,
-  },
   // megalist-agent.css is loaded as an agent sheet, so its UA-only
   // ::-moz-reveal selector doesn't parse as an author sheet here.
   {

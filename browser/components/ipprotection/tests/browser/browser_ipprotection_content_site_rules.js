@@ -383,7 +383,7 @@ add_task(async function test_site_rules_manage_rules_content() {
   );
   Assert.equal(
     siteRulesEl.getAttribute("iconsrc"),
-    "chrome://browser/skin/permissions.svg",
+    "chrome://browser/content/ipprotection/assets/vpn-website-rules-icon.svg",
     "Site rules control should show the permissions icon"
   );
   Assert.equal(

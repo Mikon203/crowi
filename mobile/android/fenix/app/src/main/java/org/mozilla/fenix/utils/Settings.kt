@@ -323,18 +323,6 @@ class Settings(
     private val homescreenSections: Map<HomeScreenSection, Boolean>
         get() = FxNimbus.features.homescreen.value().sectionsEnabled
 
-    /** Indicates if the recent tabs homepage section settings should be visible */
-    val showHomepageRecentTabsSectionToggle: Boolean
-        get() = !enableHomepageSearchBar
-
-    /** Indicates if the bookmarks homepage section settings should be visible */
-    val showHomepageBookmarksSectionToggle: Boolean
-        get() = !enableHomepageSearchBar
-
-    /** Indicates if the recently visited homepage section settings should be visible */
-    val showHomepageRecentlyVisitedSectionToggle: Boolean
-        get() = !enableHomepageSearchBar
-
     /** Indicates whether or not the homepage should use edge to edge background */
     val enableHomepageEdgeToEdgeBackgroundFeature: Boolean
         get() = FxNimbus.features.homescreenEdgeToEdgeBackground.value().enabled
@@ -2674,6 +2662,13 @@ class Settings(
             default = false,
         )
 
+    /**
+     * Indicates if the homepage search bar should replace the address bar. The homepage search bar is only laid out in
+     * the middle of the homepage while the address bar is at the top.
+     */
+    val isHomepageMiddleSearchEnabled: Boolean
+        get() = enableHomepageSearchBar && toolbarPosition == ToolbarPosition.TOP
+
     /** Indicates if the Mozilla Ads Client for Sponsored Stories is enabled. */
     var enableAdsClientForStories by
         booleanPreference(
@@ -2700,6 +2695,20 @@ class Settings(
         booleanPreference(
             key = appContext.getPreferenceKey(R.string.pref_key_show_homepage_weather_widget),
             default = true,
+        )
+
+    /** Indicates if the Homepage Wrexham Widget is enabled. */
+    var enableHomepageWrexhamWidget by
+        booleanPreference(
+            key = appContext.getPreferenceKey(R.string.pref_key_enable_homepage_wrexham_widget),
+            default = { FxNimbus.features.homepageWrexhamWidget.value().enabled },
+        )
+
+    /** Indicates if the Homepage Wrexham Widget should be visible on the homepage. */
+    var showHomepageWrexhamWidget by
+        booleanPreference(
+            key = appContext.getPreferenceKey(R.string.pref_key_show_homepage_wrexham_widget),
+            default = false,
         )
 
     /** Adjust Activated User sent */
@@ -3431,11 +3440,7 @@ class Settings(
         )
 
     /** Whether customizing the browser menu is allowed. */
-    var isMenuCustomizationEnabled by
-        booleanPreference(
-            key = appContext.getPreferenceKey(R.string.pref_key_enable_menu_customization),
-            default = { false },
-        )
+    val isMenuCustomizationEnabled = true
 
     /** Whether entering the browser menu customization screen is allowed. */
     var isMenuCustomizationScreenEnabled by
@@ -3550,6 +3555,12 @@ class Settings(
         booleanPreference(
             key = appContext.getPreferenceKey(R.string.pref_key_enable_sync_decoupling),
             default = { FxNimbus.features.accountSyncDecouple.value().enabled },
+        )
+
+    var isQwacUiEnabled by
+        booleanPreference(
+            key = appContext.getPreferenceKey(R.string.pref_key_enable_qwac_ui),
+            default = false,
         )
 
     private var powerSavingModeAutoPreference by

@@ -268,22 +268,22 @@ user-login = "jrmuizel"
 user-name = "Jeff Muizelaar"
 
 [[publisher.glean]]
-version = "70.3.0"
-when = "2026-10-20"
+version = "71.0.0"
+when = "2026-10-22"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
 
 [[publisher.glean-core]]
-version = "70.3.0"
-when = "2026-10-20"
+version = "71.0.0"
+when = "2026-10-22"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
 
 [[publisher.glean-sym]]
-version = "70.0.0"
-when = "2026-08-20"
+version = "71.0.0"
+when = "2026-10-22"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"

@@ -577,25 +577,6 @@ class BrowserToolbarMiddlewareTest {
 
         verify {
             navController.navigate(
-                BrowserFragmentDirections.actionGlobalMenuDialogFragment(accesspoint = MenuAccessPoint.Browser),
-                null,
-            )
-        }
-    }
-
-    @Test
-    fun `GIVEN menu customization is enabled WHEN clicking the menu button THEN open the customizable menu`() {
-        every { navController.currentDestination?.id } returns R.id.browserFragment
-        settings.isMenuCustomizationEnabled = true
-
-        val middleware = buildMiddleware()
-        val toolbarStore = buildStore(middleware)
-        val menuButton = toolbarStore.state.displayState.browserActionsEnd[2] as ActionButtonRes
-
-        toolbarStore.dispatch(menuButton.onClick as BrowserToolbarEvent)
-
-        verify {
-            navController.navigate(
                 BrowserFragmentDirections.actionBrowserFragmentToMenuFragment(accessPoint = MenuAccessPoint.Browser),
                 null,
             )
@@ -3045,7 +3026,7 @@ class BrowserToolbarMiddlewareTest {
         val middleware = buildMiddleware()
         val result = middleware.buildAction(toolbarAction = ToolbarAction.Menu) as ActionButtonRes
 
-        assertEquals(iconsR.drawable.mozac_ic_ellipsis_vertical_24, result.drawableResId)
+        assertEquals(iconsR.drawable.mozac_ic_more_vertical_round_24, result.drawableResId)
         assertEquals(R.string.content_description_menu, result.contentDescription)
         assertEquals(ActionButton.State.DEFAULT, result.state)
         assertEquals(MenuClicked(Source.Unknown), result.onClick)
@@ -4420,7 +4401,7 @@ class BrowserToolbarMiddlewareTest {
         source: Source = Source.AddressBar.BrowserEnd,
     ) =
         ActionButtonRes(
-            drawableResId = iconsR.drawable.mozac_ic_ellipsis_vertical_24,
+            drawableResId = iconsR.drawable.mozac_ic_more_vertical_round_24,
             contentDescription = R.string.content_description_menu,
             highlighted = highlighted,
             onClick = MenuClicked(source),

@@ -194,8 +194,8 @@ add_task(async function test_save_doorhanger_content() {
     );
     is(
       descriptionL10nId(content),
-      "credit-card-save-payment-method-doorhanger-description-security-code",
-      "The description says the security code is saved"
+      "credit-card-save-payment-method-doorhanger-description",
+      "The doorhanger shows the payment method description"
     );
     is(
       notification.getAttribute("secondarybuttonlabel"),
@@ -257,7 +257,7 @@ add_task(async function test_save_doorhanger_toggle_follows_pref() {
     is(
       descriptionL10nId(content),
       "credit-card-save-payment-method-doorhanger-description",
-      "The description no longer mentions the security code"
+      "The description doesn't change when security codes aren't saved"
     );
     is(
       cardDetailsL10nId(content),
@@ -277,8 +277,8 @@ add_task(async function test_save_doorhanger_toggle_follows_pref() {
     );
     is(
       descriptionL10nId(content),
-      "credit-card-save-payment-method-doorhanger-description-security-code",
-      "The description mentions the security code again"
+      "credit-card-save-payment-method-doorhanger-description",
+      "The description stays the same"
     );
     is(
       cardDetailsL10nId(content),
@@ -337,8 +337,8 @@ add_task(async function test_save_with_toggle_on_stores_security_code() {
     ok(toggle.pressed, "The security codes toggle is on");
     is(
       descriptionL10nId(content),
-      "credit-card-save-payment-method-doorhanger-description-security-code",
-      "The description says the security code is saved"
+      "credit-card-save-payment-method-doorhanger-description",
+      "The doorhanger shows the payment method description"
     );
 
     const onChanged = waitForStorageChangedEvents("add");
@@ -375,7 +375,7 @@ add_task(async function test_save_with_toggle_off_stores_no_security_code() {
     is(
       descriptionL10nId(content),
       "credit-card-save-payment-method-doorhanger-description",
-      "The description no longer mentions the security code"
+      "The description doesn't change when security codes aren't saved"
     );
     is(
       cardDetailsL10nId(content),
@@ -565,10 +565,11 @@ add_task(async function test_card_details_cover_every_combination() {
           `The expiration is shown only when there is one: ${text}`
         );
         is(
-          text.includes("CVC •••"),
+          text.includes("CVC"),
           !!securityCode,
           `The security code is noted only when there is one: ${text}`
         );
+        ok(!text.includes("•••"), `The details have no hidden digits: ${text}`);
       }
     }
   }
@@ -581,7 +582,7 @@ async function checkPlainUpdateContent(content, { withSecurityCode }) {
   is(
     notification.getAttribute("label"),
     await document.l10n.formatValue(
-      "credit-card-update-payment-method-doorhanger-header"
+      "credit-card-update-saved-payment-method-doorhanger-header"
     ),
     "The doorhanger asks to update the payment method"
   );
@@ -597,7 +598,7 @@ async function checkPlainUpdateContent(content, { withSecurityCode }) {
   );
   is(
     notification.getAttribute("secondarybuttonlabel"),
-    await formatLabel("credit-card-capture-save-new-payment-method-button"),
+    await formatLabel("credit-card-capture-save-as-new-payment-method-button"),
     "The secondary button saves a new payment method"
   );
   ok(
@@ -734,8 +735,8 @@ async function checkSecurityCodeUpdateContent(content) {
   );
   is(
     descriptionL10nId(content),
-    "credit-card-save-security-code-doorhanger-description",
-    "The description says the security code is saved"
+    "credit-card-save-payment-method-doorhanger-description",
+    "The doorhanger shows the payment method description"
   );
   is(
     cardDetailsL10nId(content),
@@ -840,7 +841,7 @@ add_task(async function test_security_code_toggle_switches_to_plain_update() {
     is(
       notification.getAttribute("label"),
       await document.l10n.formatValue(
-        "credit-card-update-payment-method-doorhanger-header"
+        "credit-card-update-saved-payment-method-doorhanger-header"
       ),
       "The doorhanger asks to update the payment method"
     );
@@ -857,7 +858,9 @@ add_task(async function test_security_code_toggle_switches_to_plain_update() {
     );
     is(
       notification.getAttribute("secondarybuttonlabel"),
-      await formatLabel("credit-card-capture-save-new-payment-method-button"),
+      await formatLabel(
+        "credit-card-capture-save-as-new-payment-method-button"
+      ),
       "The secondary button saves a new payment method"
     );
     ok(
@@ -986,9 +989,9 @@ add_task(
       await clickToggle(toggle);
       await checkNotification(
         {
-          header: "credit-card-update-payment-method-doorhanger-header",
+          header: "credit-card-update-saved-payment-method-doorhanger-header",
           main: "credit-card-capture-update-payment-method-button",
-          secondary: "credit-card-capture-save-new-payment-method-button",
+          secondary: "credit-card-capture-save-as-new-payment-method-button",
           dropdown: false,
         },
         "With the toggle off"
@@ -1024,3 +1027,71 @@ add_task(
     await SpecialPowers.popPrefEnv();
   }
 );
+
+async function waitForCvvSavingToggledEvents(count) {
+  await TestUtils.waitForCondition(
+    () =>
+      (Glean.formautofillCreditcards.cvvSavingToggled.testGetValue() ?? [])
+        .length == count,
+    `Waiting for ${count} cvv_saving_toggled events`
+  );
+  return Glean.formautofillCreditcards.cvvSavingToggled
+    .testGetValue()
+    .map(event => event.extra);
+}
+
+add_task(async function test_save_doorhanger_toggle_records_telemetry() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [SUPPORTED_PREF, "on"],
+      [ENABLED_PREF, true],
+    ],
+  });
+  Services.fog.testResetFOG();
+
+  await withDoorhanger(CC_VALUES, async content => {
+    const toggle = content.querySelector("moz-toggle");
+    await toggle.updateComplete;
+
+    await clickToggle(toggle);
+    await clickToggle(toggle);
+    Assert.deepEqual(
+      await waitForCvvSavingToggledEvents(2),
+      [
+        { enabled: "false", source: "save_prompt", had_saved_cvv: "false" },
+        { enabled: "true", source: "save_prompt", had_saved_cvv: "false" },
+      ],
+      "Turning saving security codes off and on is recorded"
+    );
+
+    await clickDoorhangerButton(SECONDARY_BUTTON);
+  });
+
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_update_doorhanger_toggle_records_telemetry() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [SUPPORTED_PREF, "on"],
+      [ENABLED_PREF, true],
+    ],
+  });
+  await setStorage({ ...TEST_CREDIT_CARD_1, "cc-csc": "123" });
+  Services.fog.testResetFOG();
+
+  await withSecurityCodeUpdateDoorhanger("456", async content => {
+    const toggle = content.querySelector("moz-toggle");
+    await toggle.updateComplete;
+
+    await clickToggle(toggle);
+    Assert.deepEqual(
+      await waitForCvvSavingToggledEvents(1),
+      [{ enabled: "false", source: "update_prompt", had_saved_cvv: "true" }],
+      "Turning saving security codes off with a saved code is recorded"
+    );
+  });
+
+  await removeAllRecords();
+  await SpecialPowers.popPrefEnv();
+});

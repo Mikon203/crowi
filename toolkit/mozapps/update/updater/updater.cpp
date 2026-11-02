@@ -1887,7 +1887,8 @@ off_t BSPatchFileDecoder::DestinationSize() {
 unsigned int BSPatchFileDecoder::SourceCrc32() { return mHeader.scrc32; }
 
 int BSPatchFileDecoder::Apply(const uint8_t* aCheckedSrcBuf,
-                              size_t aCheckedSrcBufSize, FILE* aDstFile) {
+                              [[maybe_unused]] size_t aCheckedSrcBufSize,
+                              FILE* aDstFile) {
   return MBS_ApplyPatch(&mHeader, mPatchFile, aCheckedSrcBuf, aDstFile);
 }
 #endif  // defined(MOZ_BSPATCH)
@@ -2609,6 +2610,7 @@ void PatchIfFile::Finish(int status) {
 #  include "EnterprisePoliciesFlagFile.h"
 #  include "nsWindowsRestart.cpp"
 #  include "nsWindowsHelpers.h"
+#  include "PostUpdateEnvironment.h"
 #  include "uachelper.h"
 #  ifdef MOZ_MAINTENANCE_SERVICE
 #    include "pathhash.h"
@@ -2762,23 +2764,16 @@ bool LaunchWinPostProcess(const WCHAR* installationDir,
   si.lpDesktop = const_cast<LPWSTR>(L"");  // -Wwritable-strings
   PROCESS_INFORMATION pi = {0};
 
-  // Invoke post-update with a minimal environment to avoid environment
-  // variables intended to relaunch Firefox impacting post-update operations, in
-  // particular background tasks.  The updater will invoke the callback
-  // application with the current (non-minimal) environment.
-  //
-  // N.b.: two null terminating characters!  The first terminates a non-existent
-  // key-value pair, the second (automatically added) terminates the block of
-  // key-value pairs.
-  const WCHAR* emptyEnvironment = L"\0";
+  PostUpdateEnvironment postUpdateEnvironment{sElevationType};
 
   bool ok =
       CreateProcessW(exefullpath, cmdline,
                      nullptr,  // no special security attributes
                      nullptr,  // no special thread attributes
                      false,    // don't inherit filehandles
-                     0,        // No special process creation flags
-                     (LPVOID)emptyEnvironment, workingDirectory, &si, &pi);
+                     CREATE_UNICODE_ENVIRONMENT, postUpdateEnvironment.get(),
+                     workingDirectory, &si, &pi);
+
   free(cmdline);
   if (ok) {
     LOG(("LaunchWinPostProcess - Waiting for process to complete"));
@@ -2794,8 +2789,9 @@ bool LaunchWinPostProcess(const WCHAR* installationDir,
 
 #endif
 
-static void LaunchCallbackApp(const NS_tchar* workingDir, int argc,
-                              NS_tchar** argv, bool usingService) {
+static void LaunchCallbackApp(const NS_tchar* workingDir,
+                              [[maybe_unused]] int argc, NS_tchar** argv,
+                              [[maybe_unused]] bool usingService) {
   putenv(const_cast<char*>("MOZ_LAUNCHED_CHILD=1"));
 
   // Run from the specified working directory (see bug 312360).
@@ -3408,7 +3404,7 @@ static int GetUpdateFileName(NS_tchar* fileName, int maxChars) {
   return OK;
 }
 
-static void UpdateThreadFunc(void* param) {
+static void UpdateThreadFunc([[maybe_unused]] void* param) {
   // open ZIP archive and process...
   int rv;
   if (sReplaceRequest) {

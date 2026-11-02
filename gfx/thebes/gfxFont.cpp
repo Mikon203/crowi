@@ -4670,21 +4670,23 @@ void gfxFont::SanitizeMetrics(bool aIsBadUnderlineFont) {
 
   // If the font entry has ascent/descent/lineGap-override values,
   // replace the metrics from the font with the overrides.
+  // Note that it is possible for internalLeading to end up negative here.
   gfxFloat adjustedSize = GetAdjustedSize();
   if (mFontEntry->mAscentOverride >= 0.0) {
     mMetrics.maxAscent = mFontEntry->mAscentOverride * adjustedSize;
     mMetrics.maxHeight = mMetrics.maxAscent + mMetrics.maxDescent;
-    mMetrics.internalLeading =
-        std::max(0.0, mMetrics.maxHeight - mMetrics.emHeight);
+    mMetrics.internalLeading = mMetrics.maxHeight - mMetrics.emHeight;
+    mHasMetricsOverride = true;
   }
   if (mFontEntry->mDescentOverride >= 0.0) {
     mMetrics.maxDescent = mFontEntry->mDescentOverride * adjustedSize;
     mMetrics.maxHeight = mMetrics.maxAscent + mMetrics.maxDescent;
-    mMetrics.internalLeading =
-        std::max(0.0, mMetrics.maxHeight - mMetrics.emHeight);
+    mMetrics.internalLeading = mMetrics.maxHeight - mMetrics.emHeight;
+    mHasMetricsOverride = true;
   }
   if (mFontEntry->mLineGapOverride >= 0.0) {
     mMetrics.externalLeading = mFontEntry->mLineGapOverride * adjustedSize;
+    mHasMetricsOverride = true;
   }
 
   mMetrics.underlineSize = std::max(1.0, mMetrics.underlineSize);

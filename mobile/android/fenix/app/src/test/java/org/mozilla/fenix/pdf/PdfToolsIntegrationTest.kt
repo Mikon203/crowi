@@ -26,9 +26,11 @@ import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.ShareResourceAction
 import mozilla.components.browser.state.engine.EngineMiddleware
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.EngineState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.content.ShareResourceState
+import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
@@ -66,9 +68,9 @@ class PdfToolsIntegrationTest {
             it.copy(content = it.content.copy(isPdf = true))
         }
 
-    private fun storeOf(tab: TabSessionState) =
+    private fun storeOf(tab: TabSessionState, customTabs: List<CustomTabSessionState> = emptyList()) =
         BrowserStore(
-            initialState = BrowserState(tabs = listOf(tab), selectedTabId = tab.id),
+            initialState = BrowserState(tabs = listOf(tab), customTabs = customTabs, selectedTabId = tab.id),
             middleware =
                 listOf(captureActionsMiddleware) + EngineMiddleware.create(engine = mockk(), scope = TestScope()),
         )
@@ -78,14 +80,27 @@ class PdfToolsIntegrationTest {
     private fun pdfTabWith(engineSession: EngineSession) =
         pdfTab.copy(engineState = EngineState(engineSession = engineSession))
 
+    private val customTabId = "custom"
+
+    private fun customPdfTabWith(engineSession: EngineSession? = null) =
+        createCustomTab(url = "https://mozilla.org/custom.pdf", id = customTabId, engineSession = engineSession).let {
+            it.copy(content = it.content.copy(isPdf = true))
+        }
+
+    // The selected tab is a PDF too, so the tools must tell the two apart.
+    private fun storeWithCustomTab(customTab: CustomTabSessionState = customPdfTabWith()) =
+        storeOf(pdfTab, customTabs = listOf(customTab))
+
     private fun integration(
         isAddressBarAtBottom: Boolean = true,
         store: BrowserStore = browserStore,
+        customTabSessionId: String? = null,
     ) =
         PdfToolsIntegration(
             container = container,
             browserStore = store,
             isAddressBarAtBottom = isAddressBarAtBottom,
+            customTabSessionId = customTabSessionId,
             mainDispatcher = Dispatchers.Unconfined,
         )
 
@@ -324,6 +339,55 @@ class PdfToolsIntegrationTest {
         integration.handleSignClick()
 
         browserStore.dispatch(ContentAction.ExitedPdfViewer(tabId))
+
+        assertFalse(integration.signatureState.isSigning)
+    }
+
+    @Test
+    fun `GIVEN a custom tab WHEN download, print, and share are activated THEN each acts on the custom tab`() {
+        val integration = integration(store = storeWithCustomTab(), customTabSessionId = customTabId)
+
+        integration.handleDownloadClick()
+        integration.handlePrintClick()
+        integration.handleShareClick()
+
+        captureActionsMiddleware.assertFirstAction(EngineAction.SaveToPdfAction::class) {
+            assertEquals(customTabId, it.tabId)
+        }
+        captureActionsMiddleware.assertFirstAction(EngineAction.PrintContentAction::class) {
+            assertEquals(customTabId, it.tabId)
+        }
+        captureActionsMiddleware.assertFirstAction(ShareResourceAction.AddShareAction::class) {
+            assertEquals(customTabId, it.tabId)
+        }
+    }
+
+    @Test
+    fun `GIVEN a custom tab WHEN a signature is added THEN the custom tab gets the signature`() {
+        val engineSession = mockk<EngineSession>(relaxed = true)
+        val integration =
+            integration(store = storeWithCustomTab(customPdfTabWith(engineSession)), customTabSessionId = customTabId)
+        integration.handleSignClick()
+        integration.signatureState.signature.setTextAndPlaceCursorAtEnd("Test User")
+
+        integration.handleSignAddClick()
+
+        verify { engineSession.addSignatureToPdf(eq("Test User"), any(), any()) }
+    }
+
+    @Test
+    fun `GIVEN a signature is in progress on a custom tab WHEN the selected tab and then the custom tab leave the PDF viewer THEN only the custom tab abandons it`() {
+        val store = storeWithCustomTab()
+        val integration = integration(store = store, customTabSessionId = customTabId)
+        integration.start()
+        shadowOf(Looper.getMainLooper()).idle()
+        integration.handleSignClick()
+
+        store.dispatch(ContentAction.ExitedPdfViewer(tabId))
+
+        assertTrue("The selected tab leaving does not affect the custom tab.", integration.signatureState.isSigning)
+
+        store.dispatch(ContentAction.ExitedPdfViewer(customTabId))
 
         assertFalse(integration.signatureState.isSigning)
     }

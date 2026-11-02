@@ -70,7 +70,6 @@ include ClientIPCTypes;
 include HangTypes;
 include PrefsTypes;
 include NeckoChannelParams;
-include PSMIPCTypes;
 include LookAndFeelTypes;
 include ProfilerTypes;
 
@@ -631,7 +630,6 @@ child:
       uint32_t[] namespaces);
 
     async NetworkLinkTypeChange(uint32_t type);
-    async SocketProcessCrashed();
 
     // Re-create the rendering stack for a device reset.
     async ReinitRenderingForDeviceReset();
@@ -1096,8 +1094,7 @@ child:
         NavigationType aNavigationType,
         TabId aSnapshotTargetTab) returns (bool captured);
     async ReactivateDocuments(MaybeDiscardedBrowsingContext aContext,
-                              SessionHistoryInfo? aReactivatedEntry,
-                              SessionHistoryInfo[] aNewSHEs,
+                              NavigationReactivationData[] aReactivationData,
                               PreviousSessionHistoryInfo? aPreviousEntryForActivation);
     // Fires pageswap without a view transition, for a navigation that does not
     // use BeginOutboundCrossDocumentViewTransition.

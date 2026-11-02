@@ -236,6 +236,7 @@ import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.pbmlock.BlackScreenOverlay
 import org.mozilla.fenix.pbmlock.NavigationOrigin
 import org.mozilla.fenix.pbmlock.observePrivateModeLock
+import org.mozilla.fenix.pdf.PdfToolsIntegration
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
 import org.mozilla.fenix.search.awesomebar.AwesomeBarComposable
 import org.mozilla.fenix.settings.biometric.BiometricPromptFeature
@@ -321,6 +322,7 @@ abstract class BaseBrowserFragment :
 
     @VisibleForTesting internal val findInPageIntegration = ViewBoundFeatureWrapper<FindInPageIntegration>()
     private val toolbarsIntegration = ViewBoundFeatureWrapper<ToolbarsIntegration>()
+    private val pdfToolsIntegration = ViewBoundFeatureWrapper<PdfToolsIntegration>()
     private val bottomToolbarContainerIntegration = ViewBoundFeatureWrapper<BottomToolbarContainerIntegration>()
     private val sitePermissionsFeature = ViewBoundFeatureWrapper<SitePermissionsFeature>()
     private val fullScreenFeature = ViewBoundFeatureWrapper<FullScreenFeature>()
@@ -1488,7 +1490,27 @@ abstract class BaseBrowserFragment :
             bottomToolbarHeight = bottomToolbarHeight,
         )
 
+        initPdfTools(context = context, rootView = view)
         initializeMicrosurveyFeature(context)
+    }
+
+    private fun initPdfTools(context: Context, rootView: View) {
+        val settings = context.components.settings
+        if (!settings.enablePdfTools) {
+            return
+        }
+
+        pdfToolsIntegration.set(
+            feature =
+                PdfToolsIntegration(
+                    container = binding.browserLayout,
+                    browserStore = context.components.core.store,
+                    isAddressBarAtBottom = settings.toolbarPosition == ToolbarPosition.BOTTOM,
+                    customTabSessionId = customTabSessionId,
+                ),
+            owner = this,
+            view = rootView,
+        )
     }
 
     private fun initializeBrowserToolbar(

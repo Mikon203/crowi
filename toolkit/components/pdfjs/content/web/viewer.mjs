@@ -20,8 +20,8 @@
  */
 
 /**
- * pdfjsVersion = 6.5.390
- * pdfjsBuild = ea6cf5c98
+ * pdfjsVersion = 6.5.422
+ * pdfjsBuild = 22f5df126
  */
 
 ;// ./web/ui_utils.js
@@ -907,7 +907,7 @@ const {
 } = globalThis.pdfjsLib;
 
 ;// ./web/internal_evt.js
-const INTERNAL_EVT = "b5f7d5ec-e6de-4b4b-b3ac-16d611e7e365";
+const INTERNAL_EVT = "1aea898a-50cb-4010-95f7-bd1de092b757";
 const internalOpt = Object.freeze({
   internal: INTERNAL_EVT
 });
@@ -13433,7 +13433,7 @@ class PDFViewer {
   #savedPageViews = null;
   #deletedPageNumbers = null;
   constructor(options) {
-    const viewerVersion = "6.5.390";
+    const viewerVersion = "6.5.422";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -14185,6 +14185,7 @@ class PDFViewer {
     const pageNumber = this._currentPageNumber,
       state = this.#scrollModePageState,
       viewer = this.viewer;
+    this.l10n.pause();
     viewer.textContent = "";
     state.pages.length = 0;
     if (this._spreadMode === SpreadMode.NONE && !this.isInPresentationMode) {
@@ -14220,6 +14221,7 @@ class PDFViewer {
       }
       viewer.append(spread);
     }
+    this.l10n.resume();
     state.scrollDown = pageNumber >= state.previousPageNumber;
     state.previousPageNumber = pageNumber;
   }
@@ -14853,6 +14855,7 @@ class PDFViewer {
     if (this._scrollMode === ScrollMode.PAGE) {
       this.#ensurePageViewVisible();
     } else {
+      this.l10n.pause();
       viewer.textContent = "";
       if (this._spreadMode === SpreadMode.NONE) {
         for (const pageView of this._pages) {
@@ -14873,6 +14876,7 @@ class PDFViewer {
           spread.append(pages[i].div);
         }
       }
+      this.l10n.resume();
     }
     if (!pageNumber) {
       return;

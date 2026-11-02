@@ -549,6 +549,7 @@ class Perftest(metaclass=ABCMeta):
             and self.config["app"] in FIREFOX_APPS
         ):
             self.set_browser_test_prefs({
+                "network.proxy.type": 0,
                 "network.dns.forceResolve": self.playback.host,
                 "network.socket.forcePort": (
                     f"80={self.playback.http_port};443={self.playback.https_port}"

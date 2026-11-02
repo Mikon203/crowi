@@ -252,6 +252,7 @@ class IPPProxyManagerSingleton extends EventTarget {
   /** @type {string | null} */
   #errorType = null;
   #refreshUsageAbortController = null;
+  #observingOfflineStatus = false;
 
   constructor() {
     super();
@@ -259,6 +260,7 @@ class IPPProxyManagerSingleton extends EventTarget {
     this.setErrorState = this.#setErrorState.bind(this);
     this.handleProxyErrorEvent = this.#handleProxyErrorEvent.bind(this);
     this.handleEvent = this.#handleEvent.bind(this);
+    this.observeOfflineStatus = this.#observeOfflineStatus.bind(this);
   }
 
   init() {
@@ -266,6 +268,13 @@ class IPPProxyManagerSingleton extends EventTarget {
       "IPProtectionService:StateChanged",
       this.handleEvent
     );
+    if (!this.#observingOfflineStatus) {
+      Services.obs.addObserver(
+        this.observeOfflineStatus,
+        "network:offline-status-changed"
+      );
+      this.#observingOfflineStatus = true;
+    }
 
     if (!this.#usage) {
       this.#usage = lazy.IPPStartupCache.usageInfo;
@@ -286,6 +295,13 @@ class IPPProxyManagerSingleton extends EventTarget {
       "IPProtectionService:StateChanged",
       this.handleEvent
     );
+    if (this.#observingOfflineStatus) {
+      Services.obs.removeObserver(
+        this.observeOfflineStatus,
+        "network:offline-status-changed"
+      );
+      this.#observingOfflineStatus = false;
+    }
 
     if (
       this.#activatingPromise ||
@@ -1096,6 +1112,16 @@ class IPPProxyManagerSingleton extends EventTarget {
     // Envoy returns a 401 if the token is rejected
     // So for now as we only care about rotating tokens we can exit here.
     return null;
+  }
+
+  /**
+   * Fails an active connection when the user switches to offline mode, so it
+   * doesn't keep appearing connected.
+   */
+  #observeOfflineStatus() {
+    if (Services.io.offline && this.#state === IPPProxyStates.ACTIVE) {
+      this.#setErrorState(ERRORS.NETWORK);
+    }
   }
 
   updateState() {

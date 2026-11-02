@@ -204,6 +204,12 @@ const PREF_URLBAR_DEFAULTS = /** @type {PreferenceDefinition[]} */ ([
   // general group with plain history results.
   ["suggest.semanticHistory.separateGroup", false],
 
+  // Whether a semantic history search starting with an origin or URL, like
+  // "example.com some topic" or "example.com/some-topic", only searches pages
+  // in that domain and its subdomains, using the rest of the search string as
+  // the query.
+  ["suggest.semanticHistory.domainScopedSearch", false],
+
   // Feature gate pref for important-dates suggestions in the urlbar.
   ["importantDates.featureGate", false],
 
@@ -351,9 +357,11 @@ const PREF_URLBAR_DEFAULTS = /** @type {PreferenceDefinition[]} */ ([
   // pick.
   ["quicksuggest.ampTopPickCharThreshold", 5],
 
-  // Whether or not use the Nova icon size for AMP suggestion.
-  // Otherwise, use standard rich-suggestion size.
-  ["quicksuggest.ampTopPickUseNovaIconSize", false],
+  // The minimum score a top-pick AMP suggestion must have to be shown with the
+  // large-icon UI treatment used for other top picks, as a decimal string
+  // (e.g., "1.0"). If it's an empty string or otherwise can't be parsed with
+  // parseFloat, the small-icon UI treatment will be used.
+  ["quicksuggest.ampTopPickScoreForLargeIcon", ""],
 
   // Comma-separated list of Suggest dynamic suggestion types to enable.
   ["quicksuggest.dynamicSuggestionTypes", ""],

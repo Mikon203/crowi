@@ -756,9 +756,10 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitVulkanDecoder() {
     return NS_ERROR_DOM_MEDIA_FATAL_ERR;
   }
 
-  mVulkanDecoder.CheckDecodeCapabilities(mCodecID, mVulkanDeviceContext,
-                                         mInfo.mExtraData, mInfo.mColorDepth);
-  if (!mVulkanDecoder.VulkanCanDecodeFormat(mCodecID,
+  if (!mVulkanDecoder.CheckDecodeCapabilities(mCodecID, mVulkanDeviceContext,
+                                              mInfo.mExtraData,
+                                              mInfo.mColorDepth) ||
+      !mVulkanDecoder.VulkanCanDecodeFormat(mCodecID,
                                             mLib->avcodec_version())) {
     return NS_ERROR_NOT_AVAILABLE;
   }

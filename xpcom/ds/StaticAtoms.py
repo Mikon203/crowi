@@ -2162,6 +2162,7 @@ STATIC_ATOMS = [
     Atom("_moz_trad_chinese_formal", "-moz-trad-chinese-formal"),
     Atom("_moz_simp_chinese_informal", "-moz-simp-chinese-informal"),
     Atom("_moz_simp_chinese_formal", "-moz-simp-chinese-formal"),
+    Atom("_moz_submit_string", "-moz-submit-string"),
     Atom("_moz_japanese_informal", "-moz-japanese-informal"),
     Atom("_moz_japanese_formal", "-moz-japanese-formal"),
     Atom("_moz_ethiopic_numeric", "-moz-ethiopic-numeric"),

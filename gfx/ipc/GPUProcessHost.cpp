@@ -321,6 +321,11 @@ void GPUProcessHost::KillProcess(bool aGenerateMinidump) {
   KillHard(aGenerateMinidump);
 }
 
+void GPUProcessHost::KillProcessForTesting() {
+  mKilledForTesting = true;
+  KillHard(/* aGenerateMinidump */ false);
+}
+
 void GPUProcessHost::CrashProcess() { mGPUChild->SendCrashProcess(); }
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)

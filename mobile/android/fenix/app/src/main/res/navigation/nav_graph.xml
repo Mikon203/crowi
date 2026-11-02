@@ -1139,6 +1139,13 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_customizationFragment_to_fenixCustomizeMenuFragment"
+            app:destination="@id/fenixCustomizeMenuFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
     <fragment
         android:id="@+id/privateBrowsingFragment"
@@ -1928,8 +1935,8 @@
 
     <fragment
       android:id="@+id/fenixCustomizeMenuFragment"
-      android:name="org.mozilla.fenix.components.menu.FenixCustomizeMenuFragment"
-      android:label="FenixCustomizeMenuFragment" />
+      android:name="org.mozilla.fenix.components.menu.compose.customize.FenixCustomizeMenuFragment"
+      android:label="@string/customize_menu" />
 
     <navigation
         android:id="@+id/trust_panel_graph"

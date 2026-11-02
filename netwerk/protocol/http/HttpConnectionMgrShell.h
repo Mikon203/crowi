@@ -19,7 +19,6 @@ class HttpTransactionShell;
 class nsHttpConnectionInfo;
 class HttpConnectionBase;
 class nsHttpConnectionMgr;
-class HttpConnectionMgrParent;
 class SpeculativeTransaction;
 class ClassOfService;
 
@@ -164,7 +163,6 @@ class HttpConnectionMgrShell : public nsISupports {
       nsIHttpUpgradeListener* aUpgradeListener) = 0;
 
   virtual nsHttpConnectionMgr* AsHttpConnectionMgr() = 0;
-  virtual HttpConnectionMgrParent* AsHttpConnectionMgrParent() = 0;
 };
 
 #define NS_DECL_HTTPCONNECTIONMGRSHELL                                         \
@@ -211,8 +209,7 @@ class HttpConnectionMgrShell : public nsISupports {
   virtual nsresult CompleteUpgrade(HttpTransactionShell* aTrans,               \
                                    nsIHttpUpgradeListener* aUpgradeListener)   \
       override;                                                                \
-  nsHttpConnectionMgr* AsHttpConnectionMgr() override;                         \
-  HttpConnectionMgrParent* AsHttpConnectionMgrParent() override;
+  nsHttpConnectionMgr* AsHttpConnectionMgr() override;
 
 }  // namespace mozilla::net
 

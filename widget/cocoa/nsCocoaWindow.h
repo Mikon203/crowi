@@ -483,6 +483,9 @@ class nsCocoaWindow final : public nsIWidget {
 
   bool HasModalDescendants() const { return mNumModalDescendants > 0; }
   bool IsModal() const { return mModal; }
+  bool IsMediaPiPWindow() const {
+    return mPiPType == mozilla::widget::PiPType::MediaPiP;
+  }
 
   NSWindow* GetCocoaWindow() { return [[mWindow retain] autorelease]; }
 
@@ -670,6 +673,7 @@ class nsCocoaWindow final : public nsIWidget {
   // period, we presume the window is visible, which prevents us from sending
   // unnecessary OcclusionStateChanged events.
   bool mHasStartedNativeFullscreen;
+  bool mIsWaitingForFullscreenVisibility = false;
 
   bool mModal = false;
   bool mIsAnimationSuppressed = false;

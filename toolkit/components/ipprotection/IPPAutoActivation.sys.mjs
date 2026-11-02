@@ -8,6 +8,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ERRORS: "moz-src:///toolkit/components/ipprotection/IPPProxyManager.sys.mjs",
   IPPPrincipalRules:
     "moz-src:///toolkit/components/ipprotection/IPPSiteRuleManager.sys.mjs",
   IPPSiteRuleManager:
@@ -38,6 +39,7 @@ const AUTOSTART_PREF = "browser.ipProtection.autoStartEnabled";
 const AUTO_RESTORE_PREF = "browser.ipProtection.autoRestoreEnabled";
 const USER_ENABLED_PREF = "browser.ipProtection.userEnabled";
 const RESTORING_ON_STARTUP = "sessionstore-restoring-on-startup";
+const OFFLINE_STATUS_CHANGED = "network:offline-status-changed";
 
 /**
  * Brings the proxy up without the user asking: auto-start, auto-restore, and
@@ -148,6 +150,7 @@ export class IPPAutoActivationSingleton {
       "SiteRuleManager:RuleChanged",
       this.handleRuleEvent
     );
+    Services.obs.addObserver(this, OFFLINE_STATUS_CHANGED);
 
     if (this.autoStart) {
       this.#fullProtectionOwed = true;
@@ -188,10 +191,28 @@ export class IPPAutoActivationSingleton {
       "SiteRuleManager:RuleChanged",
       this.handleRuleEvent
     );
+    Services.obs.removeObserver(this, OFFLINE_STATUS_CHANGED);
     this.#stopObservingRestore();
   }
 
   observe(_subject, topic) {
+    if (topic === OFFLINE_STATUS_CHANGED) {
+      if (Services.io.offline) {
+        return;
+      }
+      // A connection for included sites that failed on going offline is
+      // brought back up rather than left holding their traffic.
+      if (
+        lazy.IPPProxyManager.state === lazy.IPPProxyStates.ERROR &&
+        lazy.IPPProxyManager.mode === lazy.IPPMode.MODE_INCLUSION &&
+        lazy.IPPProxyManager.errorType === lazy.ERRORS.NETWORK
+      ) {
+        lazy.IPPProxyManager.stop(false).then(() => this.#maybeActivate());
+        return;
+      }
+      this.#maybeActivate();
+      return;
+    }
     if (topic !== RESTORING_ON_STARTUP) {
       return;
     }
@@ -216,7 +237,11 @@ export class IPPAutoActivationSingleton {
 
   #maybeActivate() {
     const mode = this.desiredMode();
-    if (mode === null) {
+    // Included sites can wait for the network to come back.
+    if (
+      mode === null ||
+      (mode === lazy.IPPMode.MODE_INCLUSION && Services.io.offline)
+    ) {
       return;
     }
 

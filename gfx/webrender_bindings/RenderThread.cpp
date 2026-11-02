@@ -1758,6 +1758,21 @@ static already_AddRefed<gl::GLContext> CreateGLContextANGLE(
 }
 #endif
 
+#ifdef MOZ_WIDGET_ANDROID
+static already_AddRefed<gl::GLContext> CreateGLContextANGLEAndroid(
+    nsACString& aError) {
+  nsCString failureId;
+  RefPtr<gl::GLContext> gl = gl::GLContextProviderEGL::CreateForCompositorANGLE(
+      !gfx::gfxVars::UseSoftwareWebRender(), &failureId);
+  if (!gl || !gl->IsANGLE() || !gl->MakeCurrent()) {
+    aError.Assign(nsPrintfCString(
+        "RcANGLE(create compositor context failed: %s)", failureId.get()));
+    return nullptr;
+  }
+  return gl.forget();
+}
+#endif
+
 #if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GTK)
 static already_AddRefed<gl::GLContext> CreateGLContextEGL() {
   // Create GLContext with dummy EGLSurface.
@@ -1797,7 +1812,12 @@ static already_AddRefed<gl::GLContext> CreateGLContext(
     gl = CreateGLContextANGLE(aError, aOutSyncObject);
   }
 #elif defined(MOZ_WIDGET_ANDROID)
-  gl = CreateGLContextEGL();
+  if (gfx::gfxVars::UseWebRenderANGLE() &&
+      gl::GLLibraryEGL::IsANGLEAvailable()) {
+    gl = CreateGLContextANGLEAndroid(aError);
+  } else {
+    gl = CreateGLContextEGL();
+  }
 #elif defined(MOZ_WIDGET_GTK)
   if (gfx::gfxVars::UseEGL()) {
     gl = CreateGLContextEGL();

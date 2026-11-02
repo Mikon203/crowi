@@ -10,8 +10,8 @@ use crate::{font, SnapshotImageKey};
 use crate::{APZScrollGeneration, HasScrollLinkedEffect, PipelineId, PropertyBinding};
 use crate::serde::{Serialize, Deserialize};
 use crate::color::ColorF;
-use crate::image::{ColorDepth, ImageKey};
-use crate::key_types::{EdgeMask, StretchSizeKey};
+use crate::image::ImageKey;
+use crate::key_types::EdgeMask;
 use crate::interning;
 use crate::path::Path;
 use crate::units::*;
@@ -169,7 +169,6 @@ pub enum DisplayItem {
 
     // Spaces and Frames that content can be scoped under.
     Iframe(IframeDisplayItem),
-    PushReferenceFrame(ReferenceFrameDisplayListItem),
     PushStackingContext(PushStackingContextDisplayItem),
 
     // These marker items indicate an array of data follows, to be used for the
@@ -180,7 +179,6 @@ pub enum DisplayItem {
     SetPoints,
 
     // These marker items terminate a scope introduced by a previous item.
-    PopReferenceFrame,
     PopStackingContext,
 
     // For debugging purposes.
@@ -213,7 +211,6 @@ pub enum DebugDisplayItem {
     ClipChain(ClipChainItem, Vec<ClipId>),
 
     Iframe(IframeDisplayItem),
-    PushReferenceFrame(ReferenceFrameDisplayListItem),
     PushStackingContext(PushStackingContextDisplayItem),
 
     SetGradientStops(Vec<GradientStop>),
@@ -221,7 +218,6 @@ pub enum DebugDisplayItem {
     SetFilterData(FilterData),
     SetPoints(Vec<LayoutPoint>),
 
-    PopReferenceFrame,
     PopStackingContext,
 
     DebugMarker(u32)
@@ -375,23 +371,16 @@ pub struct HitTestDisplayItem {
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct LineDisplayItem {
-    pub common: CommonItemProperties,
-    /// We need a separate rect from common.clip_rect to encode cute
-    /// tricks that firefox does to make a series of text-decorations seamlessly
-    /// line up -- snapping the decorations to a multiple of their period, and
-    /// then clipping them to their "proper" area. This rect is that "logical"
-    /// snapped area that may be clipped to the right size by the clip_rect.
-    pub area: LayoutRect,
-    /// Whether the rect is interpretted as vertical or horizontal
-    pub orientation: LineOrientation,
-    /// This could potentially be implied from area, but we currently prefer
-    /// that this is the responsibility of the layout engine. Value irrelevant
-    /// for non-wavy lines.
-    // FIXME: this was done before we could use tagged unions in enums, but now
-    // it should just be part of LineStyle::Wavy.
-    pub wavy_line_thickness: f32,
-    pub color: ColorF,
-    pub style: LineStyle,
+    pub spatial_id: SpatialId,
+    pub clip_chain_id: ClipChainId,
+    /// The interned decoration: style, orientation, wavy thickness and colour,
+    /// with the line's area as the key's prim rect. The area is separate from
+    /// the clip rect to encode the trick Firefox uses to make a series of
+    /// text decorations line up seamlessly: snap them to a multiple of their
+    /// period, then clip them to their proper area.
+    /// `Handle::INVALID` marks a fully transparent line captured inside a
+    /// shadow scope only so its copy can be drawn.
+    pub line: crate::interning::Handle<crate::interned_prims::LineDecorationKey>,
 }
 
 #[repr(u8)]
@@ -683,21 +672,15 @@ pub const MAX_BLUR_RADIUS: f32 = 300.;
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct BoxShadowDisplayItem {
-    pub common: CommonItemProperties,
-    /// The shadow's local rect: the blur-inflated outer rect for `Outset`, the
-    /// element rect for `Inset`. `prepare_box_shadow` recovers the element rect
-    /// from this and the clip mode.
-    pub bounds: LayoutRect,
-    pub offset: LayoutVector2D,
-    pub color: ColorF,
-    /// Already clamped to `MAX_BLUR_RADIUS`.
-    pub blur_radius: f32,
-    /// The authored spread radius, signed by the clip mode: inset shadows get
-    /// smaller as it increases, so this is `-spread_radius` for `Inset`.
-    pub spread_amount: f32,
-    pub border_radius: BorderRadius,
-    pub shadow_radius: BorderRadius,
-    pub clip_mode: BoxShadowClipMode,
+    pub spatial_id: SpatialId,
+    pub clip_chain_id: ClipChainId,
+    /// The shadow's entry in the builder's interner, which holds the colour,
+    /// the blur (clamped to `MAX_BLUR_RADIUS`), the spread signed by the clip
+    /// mode, both radii, the offset and the clip mode, all relative to the
+    /// shadow's own rect. That rect is the prim rect in the key's common data:
+    /// the blur-inflated outer rect for `Outset`, the element rect for `Inset`.
+    /// `prepare_box_shadow` recovers the element rect from it and the clip mode.
+    pub box_shadow: crate::interning::Handle<crate::interned_prims::BoxShadowKey>,
 }
 
 #[repr(C)]
@@ -849,10 +832,6 @@ pub struct BackdropFilterDisplayItem {
     pub common: CommonItemProperties,
 }
 // IMPLICIT: filters: Vec<FilterOp>, filter_datas: Vec<FilterData>, filter_primitives: Vec<FilterPrimitive>
-
-#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
-pub struct ReferenceFrameDisplayListItem {
-}
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct ReferenceFrameDescriptor {
@@ -2003,25 +1982,18 @@ pub struct IframeDisplayItem {
 
 /// An image drawn over `bounds`, either stretched to fill it or tiled across
 /// it. The builder's `push_image` and `push_repeating_image` both produce this
-/// item; which one it was is in `stretch_size`.
+/// item; which one it was is in the interned entry's stretch size.
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct ImageDisplayItem {
-    pub common: CommonItemProperties,
-    /// The area to tile the image over (first tile starts at origin of this rect)
-    // FIXME: this should ideally just be `tile_origin` here, with the clip_rect
-    // defining the bounds of the item. Needs non-trivial backend changes.
-    pub bounds: LayoutRect,
-    /// How large to make a single tile of the image. An axis that fills the
-    /// bounds is recorded as such rather than by its size, so a stretched
-    /// image's key does not depend on how big it is drawn.
-    pub stretch_size: StretchSizeKey,
-    /// The space between tiles (common case: 0)
-    pub tile_spacing: LayoutSize,
-    pub image_key: ImageKey,
-    pub image_rendering: ImageRendering,
-    pub alpha_type: AlphaType,
-    /// A hack used by gecko to color a simple bitmap font used for tofu glyphs
-    pub color: ColorF,
+    pub spatial_id: SpatialId,
+    pub clip_chain_id: ClipChainId,
+    /// The image key, tile size and spacing, rendering, alpha type and colour
+    /// live in the interned entry. Its prim rect is the area to tile the image
+    /// over (first tile starts at its origin), already collapsed to one tile on
+    /// any axis a single tile covers.
+    // FIXME: the prim rect should ideally just be a tile origin, with the clip
+    // rect defining the bounds of the item. Needs non-trivial backend changes.
+    pub image: crate::interning::Handle<crate::interned_prims::ImagePrimKey>,
 }
 
 #[repr(u8)]
@@ -2040,13 +2012,11 @@ pub enum AlphaType {
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct YuvImageDisplayItem {
-    pub common: CommonItemProperties,
-    pub bounds: LayoutRect,
-    pub yuv_data: YuvData,
-    pub color_depth: ColorDepth,
-    pub color_space: YuvColorSpace,
-    pub color_range: ColorRange,
-    pub image_rendering: ImageRendering,
+    pub spatial_id: SpatialId,
+    pub clip_chain_id: ClipChainId,
+    /// The planes, format, colour depth, space and range and the rendering
+    /// live in the interned entry, with the bounds as its prim rect.
+    pub yuv_image: crate::interning::Handle<crate::interned_prims::YuvImagePrimKey>,
 }
 
 #[repr(u8)]
@@ -2469,9 +2439,7 @@ impl DisplayItem {
             DisplayItem::Iframe(..) => "iframe",
             DisplayItem::Image(..) => "image",
             DisplayItem::Line(..) => "line",
-            DisplayItem::PopReferenceFrame => "pop_reference_frame",
             DisplayItem::PopStackingContext => "pop_stacking_context",
-            DisplayItem::PushReferenceFrame(..) => "push_reference_frame",
             DisplayItem::PushStackingContext(..) => "push_stacking_context",
             DisplayItem::SetFilterOps => "set_filter_ops",
             DisplayItem::SetFilterData => "set_filter_data",

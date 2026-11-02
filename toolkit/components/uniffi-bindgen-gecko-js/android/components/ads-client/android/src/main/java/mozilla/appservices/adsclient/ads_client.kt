@@ -744,8 +744,6 @@ internal object IntegrityCheckingUniffiLib {
     ): Int
     external fun uniffi_ads_client_checksum_method_mozadsclientbuilder_environment(
     ): Int
-    external fun uniffi_ads_client_checksum_method_mozadsclientbuilder_store_config(
-    ): Int
     external fun uniffi_ads_client_checksum_method_mozadsclientbuilder_telemetry(
     ): Int
     external fun uniffi_ads_client_checksum_constructor_mozadsclientbuilder_new(
@@ -814,8 +812,6 @@ internal object UniffiLib {
     external fun uniffi_ads_client_fn_method_mozadsclientbuilder_cache_config(`ptr`: Long,`cacheConfig`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     external fun uniffi_ads_client_fn_method_mozadsclientbuilder_environment(`ptr`: Long,`environment`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Long
-    external fun uniffi_ads_client_fn_method_mozadsclientbuilder_store_config(`ptr`: Long,`storeConfig`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
     external fun uniffi_ads_client_fn_method_mozadsclientbuilder_telemetry(`ptr`: Long,`telemetry`: Long,uniffi_out_err: UniffiRustCallStatus, 
     ): Long
@@ -1772,8 +1768,6 @@ public interface MozAdsClientBuilderInterface {
     
     fun `environment`(`environment`: MozAdsEnvironment): MozAdsClientBuilder
     
-    fun `storeConfig`(`storeConfig`: MozAdsStoreConfig): MozAdsClientBuilder
-    
     fun `telemetry`(`telemetry`: MozAdsTelemetry): MozAdsClientBuilder
     
     companion object
@@ -1923,20 +1917,6 @@ open class MozAdsClientBuilder: Disposable, AutoCloseable, MozAdsClientBuilderIn
         it,
         
         FfiConverterTypeMozAdsEnvironment.lower(`environment`),_status)
-}
-    }
-    )
-    }
-    
-
-    override fun `storeConfig`(`storeConfig`: MozAdsStoreConfig): MozAdsClientBuilder {
-            return FfiConverterTypeMozAdsClientBuilder.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_ads_client_fn_method_mozadsclientbuilder_store_config(
-        it,
-        
-        FfiConverterTypeMozAdsStoreConfig.lower(`storeConfig`),_status)
 }
     }
     )
@@ -2990,7 +2970,10 @@ enum class MozAdsReportReason {
     
     INAPPROPRIATE,
     NOT_INTERESTED,
-    SEEN_TOO_MANY_TIMES;
+    SEEN_TOO_MANY_TIMES,
+    SCAM,
+    MISLEADING,
+    OFFENSIVE;
 
     
 

@@ -1002,6 +1002,15 @@ void GPUProcessManager::NotifyListenersOnCompositeDeviceReset() {
 void GPUProcessManager::OnProcessUnexpectedShutdown(GPUProcessHost* aHost) {
   MOZ_ASSERT(mProcess && mProcess == aHost);
 
+  if (aHost->WasKilledForTesting()) {
+    GPUPROCESS_LOG("GPU process {} killed for testing",
+                   aHost->GetProcessToken());
+    CompositorManagerChild::OnGPUProcessLost(aHost->GetProcessToken());
+    DestroyProcess(/* aUnexpectedShutdown */ true);
+    HandleProcessLost();
+    return;
+  }
+
   if (StaticPrefs::layers_gpu_process_crash_also_crashes_browser()) {
     MOZ_CRASH("GPU process crashed and pref is set to crash the browser.");
   }
@@ -1273,6 +1282,16 @@ void GPUProcessManager::KillProcess(bool aGenerateMinidump) {
   }
 
   mProcess->KillProcess(aGenerateMinidump);
+}
+
+void GPUProcessManager::KillProcessForTesting() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (!mProcess) {
+    return;
+  }
+
+  mProcess->KillProcessForTesting();
 }
 
 void GPUProcessManager::CrashProcess() {

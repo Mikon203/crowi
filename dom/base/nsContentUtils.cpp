@@ -415,6 +415,7 @@
 #include "nsVariant.h"
 #include "nsWhitespaceTokenizer.h"
 #include "nsWidgetsCID.h"
+#include "nsXMLContentSerializer.h"
 #include "nsXPCOM.h"
 #include "nsXPCOMCID.h"
 #include "nsXULAppAPI.h"
@@ -6834,7 +6835,6 @@ already_AddRefed<DocumentFragment> nsContentUtils::CreateContextualFragment(
         if (name->NamespaceEquals(kNameSpaceID_XMLNS)) {
           info.mValue->ToString(uriStr);
 
-          // really want something like nsXMLContentSerializer::SerializeAttr
           tagName.AppendLiteral(" xmlns");  // space important
           if (name->GetPrefix()) {
             tagName.Append(char16_t(':'));
@@ -6844,7 +6844,12 @@ already_AddRefed<DocumentFragment> nsContentUtils::CreateContextualFragment(
             setDefaultNamespace = true;
           }
           tagName.AppendLiteral(R"(=")");
-          tagName.Append(uriStr);
+          if (!nsXMLContentSerializer::
+                  AppendAndTranslateEntitiesInXMLAttributeValue(uriStr,
+                                                                tagName)) {
+            aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+            return nullptr;
+          }
           tagName.Append('"');
         }
       }
@@ -6858,7 +6863,12 @@ already_AddRefed<DocumentFragment> nsContentUtils::CreateContextualFragment(
         // namespace.
         info->GetNamespaceURI(uriStr);
         tagName.AppendLiteral(R"( xmlns=")");
-        tagName.Append(uriStr);
+        if (!nsXMLContentSerializer::
+                AppendAndTranslateEntitiesInXMLAttributeValue(uriStr,
+                                                              tagName)) {
+          aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+          return nullptr;
+        }
         tagName.Append('"');
       }
     }

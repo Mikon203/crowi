@@ -4126,10 +4126,6 @@ already_AddRefed<ConnectionEntry> nsHttpConnectionMgr::FindConnectionEntry(
 
 nsHttpConnectionMgr* nsHttpConnectionMgr::AsHttpConnectionMgr() { return this; }
 
-HttpConnectionMgrParent* nsHttpConnectionMgr::AsHttpConnectionMgrParent() {
-  return nullptr;
-}
-
 void nsHttpConnectionMgr::NewIdleConnectionAdded(uint32_t timeToLive) {
   mNumIdleConns++;
 

@@ -561,6 +561,7 @@ class nsWindow : public nsIWidget {
 
   virtual void EnableVSyncSource() {}
   virtual void DisableVSyncSource() {}
+  virtual void WatchHiddenVSyncSource() {}
 
   // event handling code
   void DispatchActivateEvent(void);

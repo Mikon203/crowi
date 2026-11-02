@@ -208,7 +208,7 @@ void UpdateLog::WarnPrintf(const char* fmt, ...) {
  * macOS/Linux).
  * @return a pointer to the FILE struct or nullptr on error.
  */
-FILE* CreateAndOpenFile(NS_tchar* filePath, bool binary) {
+FILE* CreateAndOpenFile(NS_tchar* filePath, [[maybe_unused]] bool binary) {
 #ifdef XP_WIN
   return NS_tfopen(filePath, binary ? NS_T("wb+") : NS_T("w+"));
 #else

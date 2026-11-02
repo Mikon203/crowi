@@ -5036,6 +5036,8 @@ void nsCocoaWindow::DestroyNativeWindow() {
   // we clear our delegate.
   EndOurNativeTransition();
 
+  mIsWaitingForFullscreenVisibility = false;
+
   // We are about to destroy mWindow. Before we do that, make sure that we
   // hide the window using the Show() method, because it has several side
   // effects that our parent and listeners might be expecting. If we don't
@@ -6462,6 +6464,9 @@ void nsCocoaWindow::CocoaWindowWillEnterFullscreen(bool aFullscreen) {
 void nsCocoaWindow::CocoaWindowDidEnterFullscreen(bool aFullscreen) {
   EndOurNativeTransition();
   mHasStartedNativeFullscreen = false;
+  // AppKit can finish the transition before removing its occluding overlay.
+  mIsWaitingForFullscreenVisibility =
+      !([mWindow occlusionState] & NSWindowOcclusionStateVisible);
   DispatchOcclusionEvent();
 
   bool restoreKeyToPlayer = false;
@@ -7264,11 +7269,17 @@ void nsCocoaWindow::DispatchOcclusionEvent() {
       !mInFullScreenMode && !mHasStartedNativeFullscreen &&
       ([mWindow isKeyWindow] || [mWindow isMainWindow]);
 
+  bool isVisible = [mWindow occlusionState] & NSWindowOcclusionStateVisible;
+  if (mIsWaitingForFullscreenVisibility &&
+      (isVisible || ![NSApp isActive] || ![mWindow isKeyWindow])) {
+    mIsWaitingForFullscreenVisibility = false;
+  }
+
   // Our new occlusion state is true if the window is not visible.
-  bool newOcclusionState =
-      !IsOcclusionTrackingDisabledByEnv() && !keyOrMainNonFullscreen &&
-      !(mHasStartedNativeFullscreen ||
-        ([mWindow occlusionState] & NSWindowOcclusionStateVisible));
+  bool newOcclusionState = !IsOcclusionTrackingDisabledByEnv() &&
+                           !keyOrMainNonFullscreen &&
+                           !(mHasStartedNativeFullscreen ||
+                             mIsWaitingForFullscreenVisibility || isVisible);
 
   // Don't dispatch if the new occlustion state is the same as the current
   // state.
@@ -7744,7 +7755,14 @@ already_AddRefed<nsIWidget> nsIWidget::CreateChildWindow() {
   nsCocoaWindow* geckoWidget = [windowDelegate geckoWidget];
   NS_ASSERTION(geckoWidget, "Window delegate not returning a gecko widget!");
 
-  if (RefPtr<nsMenuBarX> geckoMenuBar = geckoWidget->GetMenuBar()) {
+  RefPtr<nsMenuBarX> geckoMenuBar = geckoWidget->GetMenuBar();
+  if (!geckoMenuBar && geckoWidget->IsMediaPiPWindow()) {
+    // The Picture-in-Picture player has no menu bar of its own. Show the hidden
+    // window's, as when no window is main, rather than one with only the
+    // application menu.
+    geckoMenuBar = nsMenuUtilsX::GetHiddenWindowMenuBar();
+  }
+  if (geckoMenuBar) {
     // We do an async paint in order to prevent crashes when macOS is actively
     // enumerating the menu items in `NSApp.mainMenu`.
     geckoMenuBar->PaintAsyncIfNeeded();
@@ -8127,6 +8145,10 @@ LayoutDeviceIntPoint nsCocoaWindow::GetNativeLockedPoint() {
 
   RollUpPopups(nsIRollupListener::AllowAnimations::No);
 
+  if (mGeckoWindow) {
+    mGeckoWindow->DispatchOcclusionEvent();
+  }
+
   ChildViewMouseTracker::ReEvaluateMouseEnterState();
   TextInputHandler::EnsureSecureEventInputDisabled();
 
@@ -8324,6 +8346,23 @@ static NSMutableSet* gSwizzledFrameViewClasses = nil;
   }
   NSUInteger keep = aStyleMask & NSWindowStyleMaskNonactivatingPanel;
   return [super _validateStyleMask:(aStyleMask & ~keep)] | keep;
+}
+
+// The Picture-in-Picture player is non-activating so that it can float over
+// another application's fullscreen Space (bug 1688932). A click into it should
+// still activate the application like a click into any other window, so that
+// the menu bar and window management follow it.
+- (void)sendEvent:(NSEvent*)anEvent {
+  if (anEvent.type == NSEventTypeLeftMouseDown &&
+      (self.styleMask & NSWindowStyleMaskNonactivatingPanel) &&
+      NSWorkspace.sharedWorkspace.frontmostApplication.processIdentifier !=
+          getpid()) {
+    // Make the player key first, so that it stays key once the application is
+    // active.
+    [self makeKeyWindow];
+    [NSApp activateIgnoringOtherApps:YES];
+  }
+  [super sendEvent:anEvent];
 }
 
 // The frame of a window is implemented using undocumented NSView subclasses.

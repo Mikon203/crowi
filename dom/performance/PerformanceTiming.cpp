@@ -157,6 +157,10 @@ CacheablePerformanceTimingData::CacheablePerformanceTimingData(
   // in subframes, and resources linked from a document.
   if (aHttpChannel) {
     SetCacheablePropertiesFromHttpChannel(aHttpChannel, aChannel);
+    // Fetch fails the TAO check for every response after a redirect hop fails
+    // it. Navigation timing entries don't go through here, so they keep only
+    // checking the final response in CheckTimingAllowedForOrigin.
+    mTimingAllowed = mTimingAllowed && mAllRedirectsPassTAO;
   }
 }
 

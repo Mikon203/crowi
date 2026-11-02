@@ -14,7 +14,6 @@
 #include "HttpChannelParent.h"
 #include "HttpLog.h"
 #include "HttpTrafficAnalyzer.h"
-#include "HttpTransactionParent.h"
 #include "InterceptedHttpChannel.h"
 #include "LNAPermissionRequest.h"
 #include "LoadContextInfo.h"
@@ -70,7 +69,6 @@
 #include "mozilla/net/NoVarySearchUtils.h"
 #include "mozilla/net/OpaqueResponseUtils.h"
 #include "mozilla/net/SFVService.h"
-#include "mozilla/net/SocketProcessParent.h"
 #include "mozilla/net/TRRService.h"
 #include "mozilla/net/URLPatternGlue.h"
 #include "mozilla/net/urlpattern_glue.h"
@@ -2160,46 +2158,9 @@ nsresult nsHttpChannel::InitTransaction() {
                                          getter_AddRefs(callbacks));
 
   // create the transaction object
-  if (nsIOService::UseSocketProcess()) {
-    if (NS_WARN_IF(!gIOService->SocketProcessReady())) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-    RefPtr<SocketProcessParent> socketProcess =
-        SocketProcessParent::GetSingleton();
-    if (!socketProcess->CanSend()) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    nsCOMPtr<nsIParentChannel> parentChannel;
-    NS_QueryNotificationCallbacks(this, parentChannel);
-    RefPtr<DocumentLoadListener> documentChannelParent =
-        do_QueryObject(parentChannel);
-    // See HttpTransactionChild::CanSendODAToContentProcessDirectly() and
-    // nsHttpChannel::CallOnStartRequest() for the reason why we need to know if
-    // this is a document load. We only send ODA directly to child process for
-    // non document loads.
-    RefPtr<HttpTransactionParent> transParent =
-        new HttpTransactionParent(!!documentChannelParent);
-    LOG1(("nsHttpChannel %p created HttpTransactionParent %p\n", this,
-          transParent.get()));
-
-    // Since OnStopRequest could be sent to child process from socket process
-    // directly, we need to store these two values in HttpTransactionChild and
-    // forward to child process until HttpTransactionChild::OnStopRequest is
-    // called.
-    transParent->SetRedirectTimestamp(mRedirectStartTimeStamp,
-                                      mRedirectEndTimeStamp);
-
-    if (socketProcess) {
-      MOZ_ALWAYS_TRUE(
-          socketProcess->SendPHttpTransactionConstructor(transParent));
-    }
-    mTransaction = transParent;
-  } else {
-    mTransaction = new nsHttpTransaction();
-    LOG1(("nsHttpChannel %p created nsHttpTransaction %p\n", this,
-          mTransaction.get()));
-  }
+  mTransaction = new nsHttpTransaction();
+  LOG1(("nsHttpChannel %p created nsHttpTransaction %p\n", this,
+        mTransaction.get()));
 
   // Save the mapping of channel id and the channel. We need this mapping for
   // nsIHttpActivityObserver.
@@ -2240,7 +2201,7 @@ nsresult nsHttpChannel::InitTransaction() {
                           mReqContentLength, GetCurrentSerialEventTarget(),
                           callbacks, this, mBrowserId, category,
                           mRequestContext, mClassOfService, mInitialRwin,
-                          LoadResponseTimeoutEnabled(), mChannelId, nullptr,
+                          LoadResponseTimeoutEnabled(), mChannelId,
                           parentAddressSpace, mLNAPermission);
   if (NS_FAILED(rv)) {
     mTransaction = nullptr;
@@ -2432,10 +2393,9 @@ nsresult nsHttpChannel::CallOnStartRequest() {
   });
 
   nsresult rv = ValidateMIMEType();
-  // Since ODA and OnStopRequest could be sent from socket process directly, we
-  // need to update the channel status before calling mListener->OnStartRequest.
-  // This is the only way to let child process discard the already received ODA
-  // messages.
+  // We need to update the channel status before calling
+  // mListener->OnStartRequest. This is the only way to let child process
+  // discard the already received ODA messages.
   if (NS_FAILED(rv)) {
     mStatus = rv;
     return mStatus;
@@ -2484,10 +2444,6 @@ nsresult nsHttpChannel::CallOnStartRequest() {
         return rv;
       }
       if (listener) {
-        MOZ_ASSERT(!LoadDataSentToChildProcess(),
-                   "DataSentToChildProcess being true means ODAs are sent to "
-                   "the child process directly. We MUST NOT apply content "
-                   "converter in this case.");
         mListener = listener;
         mCompressListener = listener;
 
@@ -2523,19 +2479,10 @@ nsresult nsHttpChannel::CallOnStartRequest() {
       RefPtr<nsInputStreamPump> pump = do_QueryObject(mTransactionPump);
       if (pump) {
         pump->PeekStream(CallTypeSniffers, thisChannel);
-      } else {
-        MOZ_ASSERT(nsIOService::UseSocketProcess());
-        RefPtr<HttpTransactionParent> trans = do_QueryObject(mTransactionPump);
-        MOZ_ASSERT(trans);
-        trans->SetSniffedTypeToChannel(CallTypeSniffers, thisChannel);
       }
     }
   }
 
-  // Note that the code below should be synced with the code in
-  // HttpTransactionChild::CanSendODAToContentProcessDirectly(). We MUST make
-  // sure HttpTransactionChild::CanSendODAToContentProcessDirectly() returns
-  // false when a stream converter is applied.
   bool unknownDecoderStarted = false;
   bool shouldSniff = false;
   bool hasContentType = mResponseHead && mResponseHead->HasContentType();
@@ -2687,10 +2634,6 @@ nsresult nsHttpChannel::CallOnStartRequest() {
       return rv;
     }
     if (listener) {
-      MOZ_ASSERT(!LoadDataSentToChildProcess(),
-                 "DataSentToChildProcess being true means ODAs are sent to "
-                 "the child process directly. We MUST NOT apply content "
-                 "converter in this case.");
       mListener = listener;
       mCompressListener = std::move(listener);
 
@@ -7978,14 +7921,6 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
 
   mListener = std::move(listener);
 
-  if (nsIOService::UseSocketProcess() &&
-      !gIOService->IsSocketProcessLaunchComplete()) {
-    RefPtr<nsHttpChannel> self = this;
-    gIOService->CallOrWaitForSocketProcess(
-        [self]() { self->AsyncOpenFinal(TimeStamp::Now()); });
-    return NS_OK;
-  }
-
   AsyncOpenFinal(TimeStamp::Now());
 
   return NS_OK;
@@ -9159,8 +9094,6 @@ void nsHttpChannel::RecordOnStartTelemetry(nsresult aStatus,
   };
 
   if (TRRService::Get() && TRRService::Get()->IsConfirmed()) {
-    // Note this telemetry probe is not working when DNS resolution is done in
-    // the socket process.
     HttpOnStartState state = HttpOnStartState::Others;
     if (NS_SUCCEEDED(aStatus)) {
       state = HttpOnStartState::Success;
@@ -9180,23 +9113,7 @@ void nsHttpChannel::RecordOnStartTelemetry(nsresult aStatus,
     }
   }
 
-  if (nsIOService::UseSocketProcess() && mTransaction) {
-    const TimeStamp now = TimeStamp::Now();
-    TimeStamp responseEnd = mTransaction->GetResponseEnd();
-    if (!responseEnd.IsNull()) {
-      PerfStats::RecordMeasurement(PerfStats::Metric::ResponseEndSocketToParent,
-                                   now - responseEnd);
-    }
-
-    mOnStartRequestStartTime = mTransaction->GetOnStartRequestStartTime();
-    if (!mOnStartRequestStartTime.IsNull()) {
-      PerfStats::RecordMeasurement(
-          PerfStats::Metric::OnStartRequestSocketToParent,
-          now - mOnStartRequestStartTime);
-    }
-  } else {
-    mOnStartRequestStartTime = TimeStamp::Now();
-  }
+  mOnStartRequestStartTime = TimeStamp::Now();
 }
 
 static bool hasConnectivity() {
@@ -9477,9 +9394,6 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
 
   if (mTransaction) {
     mProxyConnectResponseHead = mTransaction->GetProxyConnectResponseHead();
-    if (request == mTransactionPump) {
-      StoreDataSentToChildProcess(mTransaction->DataSentToChildProcess());
-    }
 
     if (!mSecurityInfo && !mCachePump) {
       // grab the security info from the connection object; the transaction
@@ -9504,9 +9418,6 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
           .Add(1);
       StoreHasHTTPSRR(true);
     }
-
-    StoreLoadedBySocketProcess(mTransaction->AsHttpTransactionParent() !=
-                               nullptr);
 
     bool isTrr;
     bool echConfigUsed;
@@ -10411,16 +10322,7 @@ nsHttpChannel::OnStopRequest(nsIRequest* request, nsresult status) {
 
     mResponseTrailers = mTransaction->TakeResponseTrailers();
 
-    if (nsIOService::UseSocketProcess() && mTransaction) {
-      mOnStopRequestStartTime = mTransaction->GetOnStopRequestStartTime();
-      if (!mOnStopRequestStartTime.IsNull()) {
-        PerfStats::RecordMeasurement(
-            PerfStats::Metric::OnStopRequestSocketToParent,
-            TimeStamp::Now() - mOnStopRequestStartTime);
-      }
-    } else {
-      mOnStopRequestStartTime = TimeStamp::Now();
-    }
+    mOnStopRequestStartTime = TimeStamp::Now();
 
     // at this point, we're done with the transaction
     mTransactionTimings = mTransaction->Timings();
@@ -10519,12 +10421,6 @@ nsresult nsHttpChannel::ContinueOnStopRequestAfterAuthRetry(
                         mResponseHead->Status() == 200;
 
   if (upgradeWebsocket || upgradeConnect) {
-    if (nsIOService::UseSocketProcess() && upgradeConnect) {
-      // TODO: Support connection upgrade for socket process in bug 1632809.
-      (void)mUpgradeProtocolCallback->OnUpgradeFailed(NS_ERROR_NOT_IMPLEMENTED);
-      return ContinueOnStopRequest(aStatus, aIsFromNet, aContentComplete);
-    }
-
     nsresult rv = gHttpHandler->CompleteUpgrade(aTransWithStickyConn,
                                                 mUpgradeProtocolCallback);
     mUpgradeProtocolCallback = nullptr;
@@ -10954,16 +10850,7 @@ nsHttpChannel::OnDataAvailable(nsIRequest* request, nsIInputStream* input,
       seekable = nullptr;
     }
 
-    if (nsIOService::UseSocketProcess() && mTransaction) {
-      mOnDataAvailableStartTime = mTransaction->GetDataAvailableStartTime();
-      if (!mOnDataAvailableStartTime.IsNull()) {
-        PerfStats::RecordMeasurement(
-            PerfStats::Metric::OnDataAvailableSocketToParent,
-            TimeStamp::Now() - mOnDataAvailableStartTime);
-      }
-    } else {
-      mOnDataAvailableStartTime = TimeStamp::Now();
-    }
+    mOnDataAvailableStartTime = TimeStamp::Now();
     nsCOMPtr<nsIStreamListener> listener = mListener;
     nsresult rv = listener->OnDataAvailable(this, input, mLogicalOffset, count);
     if (NS_SUCCEEDED(rv)) {

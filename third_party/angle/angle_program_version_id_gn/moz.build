@@ -3921,7 +3921,7 @@ if CONFIG["OS_TARGET"] == "WINNT":
         script="/python/mozbuild/mozbuild/action/file_generate_wrapper.py",
     )
 
-if CONFIG["OS_TARGET"] == "Darwin" and CONFIG["TARGET_OS"] == "OSX":
+if CONFIG["TARGET_OS"] == "OSX":
 
     GeneratedFile(
         "/third_party/angle/gen/ANGLEShaderProgramVersion.h.rsp",
@@ -4896,7 +4896,7 @@ if CONFIG["OS_TARGET"] == "Darwin" and CONFIG["TARGET_OS"] == "OSX":
         script="/python/mozbuild/mozbuild/action/file_generate_wrapper.py",
     )
 
-if CONFIG["OS_TARGET"] == "Darwin" and CONFIG["TARGET_OS"] == "iOS":
+if CONFIG["TARGET_OS"] == "iOS":
 
     GeneratedFile(
         "/third_party/angle/gen/ANGLEShaderProgramVersion.h.rsp",

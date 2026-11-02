@@ -11120,8 +11120,8 @@ bool BytecodeEmitter::emitInitializeInstanceMembers(
           //            [stack] THIS KEY
           return false;
         }
-        if (!emit1(JSOp::Zero)) {
-          //            [stack] THIS KEY ZERO
+        if (!emitNumberOp(field.initialValue)) {
+          //            [stack] THIS KEY VALUE
           return false;
         }
         if (!emit1(JSOp::InitHiddenElem)) {
@@ -11129,8 +11129,8 @@ bool BytecodeEmitter::emitInitializeInstanceMembers(
           return false;
         }
       } else {
-        if (!emit1(JSOp::Zero)) {
-          //            [stack] THIS ZERO
+        if (!emitNumberOp(field.initialValue)) {
+          //            [stack] THIS VALUE
           return false;
         }
         if (!emitAtomOp(JSOp::InitProp, field.name)) {

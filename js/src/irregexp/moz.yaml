@@ -33,6 +33,7 @@ vendoring:
   update-actions:
     - action: run-script
       script: 'import-irregexp.py'
+      args: ['{revision}']
       cwd: '{yaml_dir}'
 
 updatebot:

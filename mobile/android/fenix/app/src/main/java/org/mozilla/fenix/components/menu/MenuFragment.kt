@@ -39,6 +39,7 @@ import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toDrawable
@@ -271,6 +272,7 @@ class MenuFragment : BottomSheetDialogFragment() {
                 ) {
                     Menu(
                         store = menuStore,
+                        modifier = Modifier.testTag(MenuTestTag.MAIN_MENU),
                         onHeaderDarkBackgroundChanged = { isHeaderDark = it },
                     )
                 }

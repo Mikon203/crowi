@@ -233,6 +233,9 @@ void LaunchMacPostProcess(const char* aAppBundle) {
   // variables intended to relaunch Firefox impacting post-update operations, in
   // particular background tasks.  The updater will invoke the callback
   // application with the current (non-minimal) environment.
+  //
+  // Unlike on Windows, where the run without elevation gets the user's default
+  // environment (bug 2078262), this always uses an empty environment.
   [task setEnvironment:@{}];
 
   [task launch];

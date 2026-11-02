@@ -47,6 +47,9 @@ pref("extensions.getAddons.browserMappings.url", "https://services.addons.mozill
 // The URL for the privacy policy related to recommended extensions.
 pref("extensions.recommendations.privacyPolicyUrl", "https://www.mozilla.org/privacy/firefox/?utm_source=firefox-browser&utm_medium=firefox-browser&utm_content=privacy-policy-link#addons");
 // The URL for Firefox Color, recommended on the theme page in about:addons.
+// NOTE: the link to Firefox Color is always hidden when Nova is enabled,
+// consider removing it along with cleaning up about:addons parts conditioned
+// on the browser.nova.enabled pref.
 pref("extensions.recommendations.themeRecommendationUrl", "https://color.firefox.com/?utm_source=firefox-browser&utm_medium=firefox-browser&utm_content=theme-footer-link");
 
 pref("extensions.update.autoUpdateDefault", true);
@@ -516,10 +519,15 @@ pref("browser.urlbar.trustPanel.featureGate", true);
 pref("browser.urlbar.trustPanel.breachAlerts.featureGate", true);
 pref("browser.urlbar.trustPanel.breachAlerts", true);
 
-// Whether or not Unified Search Button is shown always.
-pref("browser.urlbar.unifiedSearchButton.always", false);
-// Whether or not history is shown when in search mode.
-pref("browser.urlbar.unifiedSearchButton.historyInSearchMode", false);
+#ifdef NIGHTLY_BUILD
+  // Whether or not Unified Search Button is shown always.
+  pref("browser.urlbar.unifiedSearchButton.always", true);
+  // Whether or not history is shown when in search mode.
+  pref("browser.urlbar.unifiedSearchButton.historyInSearchMode", true);
+#else
+  pref("browser.urlbar.unifiedSearchButton.always", false);
+  pref("browser.urlbar.unifiedSearchButton.historyInSearchMode", false);
+#endif
 
 // Enable trending suggestions and recent searches.
 pref("browser.urlbar.trending.featureGate", true);
@@ -639,9 +647,11 @@ pref("browser.urlbar.quicksuggest.impressionCaps.sponsoredEnabled", false);
 // at least this many characters long, it will be shown as a top pick.
 pref("browser.urlbar.quicksuggest.ampTopPickCharThreshold", 5);
 
-// Whether or not use the Nova icon size for AMP suggestion.
-// Otherwise, use standard rich-suggestion size.
-pref("browser.urlbar.quicksuggest.ampTopPickUseNovaIconSize", false);
+// The minimum score a top-pick AMP suggestion must have to be shown with the
+// large-icon UI treatment used for other top picks, as a decimal string (e.g.,
+// "1.0"). If it's an empty string or otherwise can't be parsed with parseFloat,
+// the small-icon UI treatment will be used.
+pref("browser.urlbar.quicksuggest.ampTopPickScoreForLargeIcon", "");
 
 // The matching strategy for AMP suggestions. Zero is the usual default
 // exact-keyword strategy. Other values are the integers defined on
@@ -909,7 +919,11 @@ pref("browser.urlbar.lastUrlbarSearchSeconds", 0);
 
 // When selecting and hovering over certain types of urlbar results, replace
 // their URLs with strings that explain why they're shown.
+#ifdef NIGHTLY_BUILD
+pref("browser.urlbar.resultExplanations.featureGate", true);
+#else
 pref("browser.urlbar.resultExplanations.featureGate", false);
+#endif
 
 pref("browser.altClickSave", false);
 
@@ -1011,6 +1025,20 @@ pref("browser.highlightToSearch.enabled", true);
 // Which actions the menu offers. Set from the menu's own settings.
 pref("browser.highlightToSearch.search.enabled", true);
 pref("browser.highlightToSearch.copy.enabled", true);
+
+// Comma-separated sites where the menu is not shown because the page has its
+// own menu for selected text. A site also matches its subdomains.
+pref(
+  "browser.highlightToSearch.ignoredSites",
+  "atlassian.net,docs.google.com,read.amazon.com,read.readwise.io,hypothes.is,chatgpt.com,github.com,notion.so,notion.site,office.com,sharepoint.com,canva.com,figma.com"
+);
+
+// Whether the menu is not shown, or is hidden, when the page shows its own
+// floating menu next to the selected text.
+pref("browser.highlightToSearch.detectPageMenus", true);
+
+// Whether the user has seen the feature callout on the actions menu.
+pref("browser.highlightToSearch.callout.seen", false);
 
 // Spin the cursor while the page is loading
 pref("browser.spin_cursor_while_busy", false);
@@ -1750,13 +1778,6 @@ pref("browser.bookmarks.editDialog.maxRecentFolders", 7);
   pref("security.sandbox.content.write_path_whitelist", "");
   pref("security.sandbox.content.read_path_whitelist", "");
   pref("security.sandbox.content.syscall_whitelist", "");
-  // Introduced as part of bug 1608558.  Linux is currently the only platform
-  // that uses a sandbox level for the socket process.  The following levels
-  // are currently defined:
-  // 0 -> "no sandbox"
-  // 1 -> "sandboxed, allows socket operations and reading necessary certs"
-  // 2 -> default-deny for ioctl
-  pref("security.sandbox.socket.process.level", 2);
 #endif
 
 #if defined(XP_OPENBSD) && defined(MOZ_SANDBOX)
@@ -2883,9 +2904,6 @@ pref("extensions.webcompat.smartblockEmbeds.enabled", true);
 pref("privacy.exposeContentTitleInWindow", true);
 pref("privacy.exposeContentTitleInWindow.pbm", true);
 
-// Run media transport in a separate process?
-pref("media.peerconnection.mtransport_process", true);
-
 // For speculatively warming up tabs to improve perceived
 // performance while using the async tab switcher.
 pref("browser.tabs.remote.warmup.enabled", true);
@@ -3174,6 +3192,10 @@ pref("browser.urlbar.share-button.enabled", false);
 pref("browser.toolbars.tab-groups.enabled", false);
 
 pref("security.certerrors.felt-privacy-v1", true);
+
+#ifdef NIGHTLY_BUILD
+  pref("security.utility_pkcs11_module_process.enabled", true);
+#endif
 
 // Prefs to control the Firefox Account toolbar menu.
 // This pref will surface existing Firefox Account information
@@ -3837,7 +3859,7 @@ pref("browser.ipProtection.l10nGateVersion", 0);
 // Pref to enable support for site exceptions
 pref("browser.ipProtection.features.siteExceptions", true);
 // Pref to enable support for site inclusions
-pref("browser.ipProtection.features.siteInclusions", false);
+pref("browser.ipProtection.features.siteInclusions", true);
 // Pref to track if the site inclusion prompt has been shown in the VPN panel
 pref("browser.ipProtection.siteInclusionPromptShown", false);
 pref("browser.ipProtection.log", false);
@@ -3872,7 +3894,7 @@ pref("toolkit.rust-components.logging.crates", "");
 pref("toolkit.rust-components.logging.internal-level", "Warn");
 
 // Settings Redesign 2025 prefs
-pref("browser.settings-redesign.enabled", true);
+pref("browser.settings-redesign.enabled", true, locked);
 
 // Gates the in-progress Notifications sub-page and its entry card in
 // Permissions and data. Not part of the settings-redesign section scheme, since

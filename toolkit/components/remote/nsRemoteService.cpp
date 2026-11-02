@@ -292,8 +292,8 @@ void nsRemoteService::ShutdownServer() { mRemoteServer = nullptr; }
 nsRemoteService::~nsRemoteService() { ShutdownServer(); }
 
 NS_IMETHODIMP
-nsRemoteService::Observe(nsISupports* aSubject, const char* aTopic,
-                         const char16_t* aData) {
+nsRemoteService::Observe(nsISupports* /*aSubject*/, const char* /*aTopic*/,
+                         const char16_t* /*aData*/) {
   // This can be xpcom-shutdown or quit-application, but it's the same either
   // way.
   ShutdownServer();

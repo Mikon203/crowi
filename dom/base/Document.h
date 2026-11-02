@@ -276,6 +276,7 @@ class NodeIterator;
 enum class OrientationType : uint8_t;
 enum class PopoverAttributeState : uint8_t;
 enum class SkipTransitionReason : uint8_t;
+enum class PrefersColorSchemeOverride : uint8_t;
 class ProcessingInstruction;
 class Promise;
 struct PropertyDefinition;
@@ -2512,6 +2513,13 @@ class Document : public nsINode,
       mozilla::Maybe<RefPtr<mozilla::dom::CustomElementRegistry>>
           aCustomElementRegistry = mozilla::Nothing());
 
+  /**
+   * Returns the window's global registry, retained after disconnection.
+   */
+  CustomElementRegistry* GetGlobalCustomElementRegistry() const {
+    return mGlobalCustomElementRegistry;
+  }
+
   // https://dom.spec.whatwg.org/#effective-global-custom-element-registry
   mozilla::dom::CustomElementRegistry* GetEffectiveGlobalCustomElementRegistry()
       const;
@@ -4634,6 +4642,9 @@ class Document : public nsINode,
   // CSS prefers-color-scheme media feature for this document.
   enum class IgnoreRFP { No, Yes };
   ColorScheme PreferredColorScheme(IgnoreRFP = IgnoreRFP::No) const;
+  // Returns the embedder overridden prefers-color-scheme override.
+  PrefersColorSchemeOverride GetOverriddenOrEmbedderColorScheme(
+      IgnoreRFP = IgnoreRFP::No) const;
   // Returns the initial color-scheme used for this document based on the
   // color-scheme meta tag.
   ColorScheme DefaultColorScheme() const;
@@ -5603,6 +5614,8 @@ class Document : public nsINode,
   // document can get its script context and scope. This is the
   // *inner* window object.
   nsCOMPtr<nsIScriptGlobalObject> mScriptGlobalObject;
+
+  RefPtr<CustomElementRegistry> mGlobalCustomElementRegistry;
 
   // If mIsStaticDocument is true, mOriginalDocument points to the original
   // document.

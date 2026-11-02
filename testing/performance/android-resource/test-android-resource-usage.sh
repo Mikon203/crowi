@@ -9,6 +9,16 @@ LAUNCH_EXTRAS="--ez performancetest true"
 
 XML_FILE=$TESTING_DIR/window_dump.xml
 XMLSTARLET_CMD=${XMLSTARLET:-xmlstarlet}
+
+# Emulates `xmlstarlet sel -t -v XPATH FILE` on hosts without xmlstarlet,
+# such as the macOS workers running the Android emulator.
+xmllint_sel() {
+    xmllint --xpath "string($4)" "$5" 2>/dev/null
+}
+
+if ! command -v "$XMLSTARLET_CMD" > /dev/null && command -v xmllint > /dev/null; then
+    XMLSTARLET_CMD=xmllint_sel
+fi
 TEST_TIME=$1
 
 URL_MOZILLA="https://www.mozilla.org/"

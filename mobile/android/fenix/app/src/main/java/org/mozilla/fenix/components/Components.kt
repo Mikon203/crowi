@@ -219,7 +219,7 @@ class Components(
 
     @Suppress("MagicNumber")
     val addonUpdater by lazyMonitored {
-        DefaultAddonUpdater(context, Frequency(12, TimeUnit.HOURS), notificationsDelegate)
+        DefaultAddonUpdater(context, Frequency(12, TimeUnit.HOURS), core.store)
     }
 
     @Suppress("MagicNumber")
@@ -457,6 +457,19 @@ class Components(
         if (!settings.isAutofillSupported) {
             add(context.getString(R.string.pref_key_passwords))
             add(context.getString(R.string.pref_key_credit_cards))
+        }
+
+        if (!settings.enableHomepageWeatherWidget) {
+            add(context.getString(R.string.pref_key_show_homepage_weather_widget))
+        }
+
+        if (!settings.enableHomepageWrexhamWidget) {
+            add(context.getString(R.string.pref_key_show_homepage_wrexham_widget))
+        }
+
+        if (!settings.enableHomepageCustomization) {
+            add(context.getString(R.string.pref_key_homepage_search_location_top))
+            add(context.getString(R.string.pref_key_enable_homepage_searchbar2))
         }
     }
 

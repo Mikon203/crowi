@@ -511,17 +511,9 @@ BrowserGlue.prototype = {
       return;
     }
 
-    let message = win.gNavigatorBundle.getString(
-      "unsignedAddonsDisabled.message"
-    );
     let buttons = [
       {
-        label: win.gNavigatorBundle.getString(
-          "unsignedAddonsDisabled.learnMore.label"
-        ),
-        accessKey: win.gNavigatorBundle.getString(
-          "unsignedAddonsDisabled.learnMore.accesskey"
-        ),
+        "l10n-id": "unsigned-addons-disabled-learn-more",
         callback() {
           win.BrowserAddonUI.openAddonsMgr(
             "addons://list/extension?unsigned=true"
@@ -533,7 +525,7 @@ BrowserGlue.prototype = {
     win.gNotificationBox.appendNotification(
       "unsigned-addons-disabled",
       {
-        label: message,
+        label: { "l10n-id": "unsigned-addons-disabled-message" },
         priority: win.gNotificationBox.PRIORITY_WARNING_MEDIUM,
       },
       buttons

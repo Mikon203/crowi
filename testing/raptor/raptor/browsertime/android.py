@@ -43,6 +43,9 @@ class BrowsertimeAndroid(PerftestAndroid, Browsertime):
     """
 
     def __init__(self, app, binary, activity=None, intent=None, **kwargs):
+        # Building a conditioned profile in super().__init__ initializes the
+        # device before run_tests() sets the test names.
+        self._test_names = None
         super().__init__(
             app,
             binary,

@@ -52,6 +52,7 @@
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
 #include "nsStreamUtils.h"
+#include "nsUTF8Utils.h"
 #include "nspr.h"
 
 #ifdef XP_WIN
@@ -310,6 +311,27 @@ nsCString GenerateRandomSeed() {
   // 4 so the seed is distinguishable from the 3-digit uniqueness counter.
   seed.Insert('_', 0);
   return seed;
+}
+
+// Returns the largest length <= aLength that doesn't split a UTF-8 sequence.
+uint32_t LengthAtCharBoundary(const nsACString& aStr, uint32_t aLength) {
+  MOZ_ASSERT(aLength <= aStr.Length());
+  while (aLength > 0 && aLength < aStr.Length() &&
+         UTF8traits::isInSeq(aStr[aLength])) {
+    --aLength;
+  }
+  return aLength;
+}
+
+uint32_t FirstCharLength(const nsACString& aStr) {
+  if (aStr.IsEmpty()) {
+    return 0;
+  }
+  uint32_t length = 1;
+  while (length < aStr.Length() && UTF8traits::isInSeq(aStr[length])) {
+    ++length;
+  }
+  return length;
 }
 
 }  // namespace
@@ -2027,14 +2049,17 @@ nsresult nsWebBrowserPersist::CalculateUniqueFilename(
   // Test if the filename is longer than allowed by the OS
   int32_t needToChop = filename.Length() - kDefaultMaxFilenameLength;
   if (needToChop > 0) {
-    // Truncate the base first and then the ext if necessary
+    // Truncate the base first, keeping at least its first character, and then
+    // the ext if necessary.
+    uint32_t newBaseLength = 0;
     if (base.Length() > (uint32_t)needToChop) {
-      base.Truncate(base.Length() - needToChop);
-    } else {
-      needToChop -= base.Length() - 1;
-      base.Truncate(1);
+      newBaseLength = LengthAtCharBoundary(base, base.Length() - needToChop);
+    }
+    if (newBaseLength == 0) {
+      newBaseLength = FirstCharLength(base);
+      needToChop -= base.Length() - newBaseLength;
       if (ext.Length() > (uint32_t)needToChop) {
-        ext.Truncate(ext.Length() - needToChop);
+        ext.Truncate(LengthAtCharBoundary(ext, ext.Length() - needToChop));
       } else {
         ext.Truncate(0);
       }
@@ -2042,6 +2067,7 @@ nsresult nsWebBrowserPersist::CalculateUniqueFilename(
       // but that won't happen because it will be set to a sensible
       // value.
     }
+    base.Truncate(newBaseLength);
 
     filename.Assign(base);
     filename.Append(mFilenameRandomSeed);
@@ -2070,7 +2096,10 @@ nsresult nsWebBrowserPersist::CalculateUniqueFilename(
         if (filename.Length() < kDefaultMaxFilenameLength - 4) {
           tmpBase = base;
         } else {
-          base.Mid(tmpBase, 0, base.Length() - 4);
+          base.Mid(tmpBase, 0,
+                   base.Length() >= 4
+                       ? LengthAtCharBoundary(base, base.Length() - 4)
+                       : base.Length());
         }
         tmpBase.Append(tmp.get());
       } else {

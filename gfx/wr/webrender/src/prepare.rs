@@ -406,10 +406,10 @@ fn prepare_prim_for_render(
     );
 
     match &mut prim_instance.kind {
-        PrimitiveKind::BoxShadow { data_handle, .. } => {
+        PrimitiveKind::BoxShadow { handle } => {
             tracy_rs::profile_scope!("BoxShadow");
 
-            let prim_data = &data_stores.box_shadow[*data_handle];
+            let prim_data = &dl_stores.box_shadows[*handle];
 
             prepare_box_shadow(
                 &prim_data.kind,
@@ -428,9 +428,9 @@ fn prepare_prim_for_render(
 
             return;
         }
-        PrimitiveKind::LineDecoration { data_handle } => {
+        PrimitiveKind::LineDecoration { handle } => {
             tracy_rs::profile_scope!("LineDecoration");
-            let prim_data = &data_stores.line_decoration[*data_handle];
+            let prim_data = &dl_stores.line_decorations[*handle];
             let line_dec_data = &prim_data.kind;
 
             let task = prim_data.kind.prepare(
@@ -647,9 +647,9 @@ fn prepare_prim_for_render(
 
             return;
         }
-        PrimitiveKind::YuvImage { data_handle, .. } => {
+        PrimitiveKind::YuvImage { handle } => {
             tracy_rs::profile_scope!("YuvImage");
-            let prim_data = &data_stores.yuv_image[*data_handle];
+            let prim_data = &dl_stores.yuv_images[*handle];
             let common_data = &prim_data.common;
             let yuv_image_data = &prim_data.kind;
 
@@ -712,10 +712,10 @@ fn prepare_prim_for_render(
 
             return;
         }
-        PrimitiveKind::Image { data_handle, .. } => {
+        PrimitiveKind::Image { handle } => {
             tracy_rs::profile_scope!("Image");
 
-            let prim_data = &data_stores.image[*data_handle];
+            let prim_data = &dl_stores.images[*handle];
             let common_data = &prim_data.common;
             let image_data = &prim_data.kind;
 

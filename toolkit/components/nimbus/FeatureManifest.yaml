@@ -148,6 +148,23 @@ search:
         Feature gate for highlight to search, the actions menu shown when text
         is selected on a page. Does not affect the user's own settings for the
         menu or its individual actions.
+    highlightToSearchIgnoredSites:
+      type: string
+      setPref:
+        branch: default
+        pref: browser.highlightToSearch.ignoredSites
+      description: >-
+        Comma-separated sites where the highlight to search actions menu is not
+        shown, because the page has its own menu for selected text. A site also
+        matches its subdomains.
+    highlightToSearchDetectPageMenus:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.highlightToSearch.detectPageMenus
+      description: >-
+        Whether the highlight to search actions menu is not shown, or is hidden,
+        when the page shows its own floating menu next to the selected text.
 
 searchConfiguration:
   description: >-
@@ -457,14 +474,16 @@ urlbar:
         picks. If the user's query matches an AMP suggestion and the query is at
         least this many characters long, the suggestion will be shown as a top
         pick. Set to zero to disable.
-    quickSuggestAmpTopPickUseNovaIconSize:
-      type: boolean
+    quickSuggestAmpTopPickScoreForLargeIcon:
+      type: string
       setPref:
         branch: default
-        pref: browser.urlbar.quicksuggest.ampTopPickUseNovaIconSize
+        pref: browser.urlbar.quicksuggest.ampTopPickScoreForLargeIcon
       description: >-
-        Whether or not use the Nova icon size for AMP suggestion.
-        Otherwise, use standard rich-suggestion size.
+        The minimum score a top-pick AMP suggestion must have to be shown with
+        the large-icon UI treatment used for other top picks, as a decimal
+        string (e.g., "1.0"). If it's an empty string or otherwise can't be
+        parsed with parseFloat, the small-icon UI treatment will be used.
     quickSuggestDynamicSuggestionTypes:
       type: string
       setPref:
@@ -715,6 +734,16 @@ urlbar:
         '[["FR",["en-*","fr-*"]],["*",["fr-*"]]]' means France in English or
         French, or a French locale anywhere. An empty value disables
         multilingual embeddings everywhere.
+    semanticHistoryDomainScopedSearch:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.urlbar.suggest.semanticHistory.domainScopedSearch
+      description: >-
+        Whether a semantic history search starting with an origin or URL, like
+        "example.com some topic" or "https://example.com/some-topic", only
+        returns pages from that domain and its subdomains, using the rest of
+        the search string as the query. Off by default.
     semanticHistoryInSeparateGroup:
       type: boolean
       setPref:
@@ -3463,6 +3492,12 @@ networkingCongestionControl:
       setPref:
         branch: default
         pref: "network.http.http3.spurious_recovery"
+    http3Abe:
+      description: Whether Alternative Backoff with ECN (RFC 8511) is turned on. Has no effect unless network.http.http3.cc_algorithm is 1 (Cubic) and network.http.http3.ecn_mark is true.
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.http.http3.abe"
     http3EcnMark:
       description: Whether to set ECN marks on outgoing HTTP/3 datagrams and react to ECN-CE feedback from the peer.
       type: boolean
@@ -6176,12 +6211,6 @@ ipc:
       setPref:
         branch: user
         pref: "dom.ipc.processPrelaunch.fission.number"
-    preallocated_lowmem_mb:
-      description: Limit preallocated processes below this memory size (in MB).
-      type: int
-      setPref:
-        branch: user
-        pref: "dom.ipc.processPrelaunch.lowmem_mb"
     priority_manager_enabled:
       description: Determines whether Firefox uses the Process Priority Manager to adjust CPU priority based on importance.
       type: boolean

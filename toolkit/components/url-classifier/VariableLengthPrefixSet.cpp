@@ -118,7 +118,7 @@ MOZ_DEFINE_MALLOC_SIZE_OF(UrlClassifierMallocSizeOf)
 NS_IMETHODIMP
 UrlClassifierPrefixSetReporter::CollectReports(
     nsIHandleReportCallback* aHandleReport, nsISupports* aData,
-    bool aAnonymize) {
+    bool /*aAnonymize*/) {
   struct PrefixSetToReport {
     RefPtr<VariableLengthPrefixSet> mPrefixSet;
     nsCString mPath;

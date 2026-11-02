@@ -378,6 +378,8 @@ add_task(async function test_saveDisabledForUnimportantGroup() {
 });
 
 add_task(async function test_saveAndCloseGroup() {
+  // Suppress the confirmation hint so it doesn't bleed into the next test.
+  await SpecialPowers.pushPrefEnv({ set: [[SAVE_HINT_SHOWN_COUNT_PREF, 3]] });
   const triggerHandler = sinon.stub();
   const tabGroupSavedTrigger = ASRouterTriggerListeners.get("tabGroupSaved");
   tabGroupSavedTrigger.uninit();
@@ -444,6 +446,7 @@ add_task(async function test_saveAndCloseGroup() {
 
   BrowserTestUtils.removeTab(tab);
   tabGroupSavedTrigger.uninit();
+  await SpecialPowers.popPrefEnv();
 });
 
 /**
@@ -619,6 +622,7 @@ add_task(async function test_implicitSave_doesNotShowConfirmationHint() {
 add_task(async function test_saveAndCloseGroup_confirmationHintCappedAtThree() {
   await SpecialPowers.pushPrefEnv({ set: [[SAVE_HINT_SHOWN_COUNT_PREF, 0]] });
   let showSpy = sinon.spy(window.ConfirmationHint, "show");
+  let panel = window.ConfirmationHint._panel;
 
   for (let i = 1; i <= 4; i++) {
     let tab = await addTab("about:mozilla");
@@ -628,6 +632,14 @@ add_task(async function test_saveAndCloseGroup_confirmationHintCappedAtThree() {
     });
     await TabGroupTestUtils.saveAndCloseTabGroup(group);
     SessionStore.forgetSavedTabGroup(group.id);
+    // Showing the hint again while it is still opening leaves a stray
+    // auto-hide timer that can close a later test's hint.
+    if (i <= 3) {
+      await TestUtils.waitForCondition(
+        () => panel.state == "open",
+        "Confirmation hint is open"
+      );
+    }
   }
 
   Assert.equal(
@@ -642,7 +654,6 @@ add_task(async function test_saveAndCloseGroup_confirmationHintCappedAtThree() {
   );
 
   // Close the last confirmation hint so it doesn't bleed into the next test
-  let panel = window.ConfirmationHint._panel;
   if (panel.state != "closed") {
     let hidden = BrowserTestUtils.waitForPopupEvent(panel, "hidden");
     panel.hidePopup();
@@ -742,6 +753,7 @@ add_task(
 
     await assertSaveAndCloseHintAnchor("tab-groups-button");
 
+    CustomizableUI.removeWidgetFromArea("tab-groups-button");
     CustomizableUI.destroyWidget("tab-groups-button");
     await SpecialPowers.popPrefEnv();
   }

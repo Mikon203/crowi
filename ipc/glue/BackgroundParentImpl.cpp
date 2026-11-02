@@ -66,7 +66,6 @@
 #include "mozilla/ipc/IdleSchedulerParent.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/ipc/PBackgroundTestParent.h"
-#include "mozilla/net/BackgroundDataBridgeParent.h"
 #include "mozilla/net/HttpBackgroundChannelParent.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIPrincipal.h"
@@ -507,6 +506,10 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvCreateWebTransportParent(
     const uint32_t& aCongestionControl, nsTArray<nsString>&& aProtocols,
     nsTArray<WebTransportHeader>&& aHeaders,
     nsTArray<WebTransportHash>&& aServerCertHashes,
+    const mozilla::Maybe<uint16_t>&
+        aAnticipatedConcurrentIncomingUnidirectionalStreams,
+    const mozilla::Maybe<uint16_t>&
+        aAnticipatedConcurrentIncomingBidirectionalStreams,
     Endpoint<PWebTransportParent>&& aParentEndpoint,
     CreateWebTransportParentResolver&& aResolver) {
   AssertIsInMainProcess();
@@ -529,6 +532,8 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvCreateWebTransportParent(
   webt->Create(aURL, aPrincipal, aBrowsingContextID, aClientInfo, aDedicated,
                aRequireUnreliable, aCongestionControl, std::move(aProtocols),
                std::move(aHeaders), std::move(aServerCertHashes),
+               aAnticipatedConcurrentIncomingUnidirectionalStreams,
+               aAnticipatedConcurrentIncomingBidirectionalStreams,
                std::move(aParentEndpoint), std::move(aResolver));
   return IPC_OK();
 }

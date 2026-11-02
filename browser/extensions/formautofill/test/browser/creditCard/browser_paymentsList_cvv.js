@@ -4,10 +4,9 @@
 
 "use strict";
 
-// Covers the read-only payment methods list on the redesigned settings pane
-// (browser.settings-redesign.enabled), which builds its rows from
-// FormAutofillPreferences.makePaymentsListItems() rather than from the
-// manageCreditCards.xhtml dialog.
+// Covers the read-only payment methods list on the redesigned settings pane,
+// which builds its rows from FormAutofillPreferences.makePaymentsListItems()
+// rather than from the manageCreditCards.xhtml dialog.
 
 const { FormAutofillPreferences } = ChromeUtils.importESModule(
   "resource://autofill/FormAutofillPreferences.sys.mjs"

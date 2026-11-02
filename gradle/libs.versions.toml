@@ -58,18 +58,19 @@ firebase-messaging = "25.0.2"
 installreferrer = "2.2"
 ksp = "2.3.12"
 material = "1.14.0"
-mlkit-prompt = "1.0.0-beta4"
+mlkit-prompt = "1.0.0-beta5"
 osslicenses-plugin = "0.13.0"
 play-integrity = "1.6.0"
 play-review = "2.0.2"
 play-services-ads-id = "18.3.0"
-play-services-base = "18.10.1"
+play-services-auth-blockstore = "16.4.0"
+play-services-base = "18.11.1"
 play-services-fido = "21.3.1"
 protobuf = "4.36.1"
 
 # Gradle plugins
-dependency-analysis = "3.19.2"
-jacoco = "0.8.15"
+dependency-analysis = "3.20.0"
+jacoco = "0.8.16"
 kaml = "0.104.0"
 protobuf-plugin = "0.10.0"
 python-envs-plugin = "0.0.31"
@@ -87,7 +88,7 @@ ktfmt = "0.64"
 spotless = "8.10.3"
 
 # Mozilla
-glean = "70.3.0"
+glean = "71.0.0"
 
 # Testing libraries
 androidx-test = "1.7.0"
@@ -106,15 +107,15 @@ mockk = "1.14.11"
 robolectric = "4.17"
 
 # Third party libraries
-adjust = "5.8.0"
+adjust = "5.8.1"
 androidsvg = "1.4"
 disklrucache = "2.0.2"
-jetbrains-markdown = "0.7.17"
+jetbrains-markdown = "0.7.18"
 jna = "5.19.1"
 json = "20260814"
 jsoup = "1.23.2"
 lottie = "6.7.1"
-okhttp = "5.5.0"
+okhttp = "5.5.1"
 okio = "3.18.2"
 sentry = "8.58.0"
 zxing = "3.5.4"
@@ -246,6 +247,7 @@ play-integrity = { module = "com.google.android.play:integrity", version.ref = "
 play-review = { module = "com.google.android.play:review", version.ref = "play-review" }
 play-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "play-review" }
 play-services-ads-id = { module = "com.google.android.gms:play-services-ads-identifier", version.ref = "play-services-ads-id" }
+play-services-auth-blockstore = { module = "com.google.android.gms:play-services-auth-blockstore", version.ref = "play-services-auth-blockstore" }
 play-services-base = { module = "com.google.android.gms:play-services-base", version.ref = "play-services-base" }
 play-services-fido = { module = "com.google.android.gms:play-services-fido", version.ref = "play-services-fido" }
 protobuf-compiler = { module = "com.google.protobuf:protoc", version.ref = "protobuf" }

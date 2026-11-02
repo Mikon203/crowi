@@ -3166,8 +3166,9 @@ Connection::LoadExtension(const nsACString& aExtensionName,
     if (!helperThread) {
       return NS_ERROR_NOT_INITIALIZED;
     }
-    MOZ_ALWAYS_SUCCEEDS(
-        helperThread->Dispatch(loadTask.forget(), NS_DISPATCH_NORMAL));
+    nsresult rv =
+        helperThread->Dispatch(loadTask.forget(), NS_DISPATCH_FALLIBLE);
+    NS_ENSURE_SUCCESS(rv, rv);
   } else {
     // In any other case we just load the extension on the current thread.
     MOZ_ALWAYS_SUCCEEDS(loadTask->Run());

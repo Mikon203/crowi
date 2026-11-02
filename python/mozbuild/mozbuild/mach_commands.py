@@ -4048,16 +4048,6 @@ def repackage_desktop_file(
     help="Package the multi-locale test archives after packaging.",
 )
 def package_l10n(command_context, locales, verbose=False, package_tests=False):
-    if "RecursiveMake" not in command_context.substs["BUILD_BACKENDS"]:
-        print(
-            "Artifact builds do not support localization. "
-            "If you know what you are doing, you can use:\n"
-            "ac_add_options --disable-compile-environment\n"
-            "export BUILD_BACKENDS=FasterMake,RecursiveMake\n"
-            "in your mozconfig."
-        )
-        return 1
-
     locales = sorted(locale for locale in locales if locale != "en-US")
 
     append_env = {
@@ -4201,16 +4191,6 @@ def run_mach(command_context, cmd, **kwargs):
     + "default: UPLOAD_PATH environment variable if set; '$topobjdir/dist/repackage-single-locales' if not set",
 )
 def repackage_single_locales(command_context, verbose=False, locales=[], dest=None):
-    if "RecursiveMake" not in command_context.substs["BUILD_BACKENDS"]:
-        print(
-            "Artifact builds do not support localization. "
-            "If you know what you are doing, you can use:\n"
-            "ac_add_options --disable-compile-environment\n"
-            "export BUILD_BACKENDS=FasterMake,RecursiveMake\n"
-            "in your mozconfig."
-        )
-        return 1
-
     if not dest:
         dest = os.environ.get(
             "UPLOAD_PATH",

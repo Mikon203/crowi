@@ -66,16 +66,7 @@ const EDIT_ADDRESS_DIALOG_URL =
   "chrome://formautofill/content/editAddress.xhtml";
 const EDIT_CREDIT_CARD_DIALOG_URL =
   "chrome://formautofill/content/editCreditCard.xhtml";
-// FormAutofill's autocomplete footer + prompts open
-// openPreferences("privacy-payment-methods-autofill"/"privacy-address-autofill"),
-// which the Settings Redesign LegacyPaneMappings shim routes to the
-// passwordsAutofill pane. Pick the matching URL for the active mode.
-const PRIVACY_PREF_URL = Services.prefs.getBoolPref(
-  "browser.settings-redesign.enabled",
-  false
-)
-  ? "about:preferences#passwordsAutofill"
-  : "about:preferences#privacy";
+const PRIVACY_PREF_URL = "about:preferences#passwordsAutofill";
 
 const HTTP_TEST_PATH = "/browser/browser/extensions/formautofill/test/browser/";
 const BASE_URL = "http://mochi.test:8888" + HTTP_TEST_PATH;
@@ -175,6 +166,8 @@ const SAME_ORIGIN_CC_EXP =
   TOP_LEVEL_URL + "../fixtures/autocomplete_cc_exp_embeded.html";
 const SAME_ORIGIN_CC_TYPE =
   TOP_LEVEL_URL + "../fixtures/autocomplete_cc_type_embeded.html";
+const SAME_ORIGIN_CC_CSC =
+  TOP_LEVEL_URL + "../fixtures/autocomplete_cc_csc_embeded.html";
 
 const SAME_SITE_ALL_FIELDS =
   SAME_SITE_URL + "../fixtures/autocomplete_cc_mandatory_embeded.html";
@@ -197,6 +190,8 @@ const CROSS_ORIGIN_CC_EXP =
   CROSS_ORIGIN_URL + "../fixtures/autocomplete_cc_exp_embeded.html";
 const CROSS_ORIGIN_CC_TYPE =
   CROSS_ORIGIN_URL + "../fixtures/autocomplete_cc_type_embeded.html";
+const CROSS_ORIGIN_CC_CSC =
+  CROSS_ORIGIN_URL + "../fixtures/autocomplete_cc_csc_embeded.html";
 
 const CROSS_ORIGIN_2_ALL_FIELDS =
   CROSS_ORIGIN_2_URL +

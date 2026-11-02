@@ -56,6 +56,7 @@ class FeatureSettingsHelperDelegate : FeatureSettingsHelper {
             isGoogleLensIntegrationEnabled = settings.googleLensIntegrationEnabled,
             isGoogleLensIntegrationUserEnabled = settings.googleLensIntegrationUserEnabled,
             isFxSuggestEnabled = settings.enableFxSuggest,
+            isPdfToolsEnabled = settings.enablePdfTools,
             showAddressBarInFocusMode = settings.showAddressBarInFocusMode,
             crashReportOption = settings.crashReportOption(),
         )
@@ -93,6 +94,7 @@ class FeatureSettingsHelperDelegate : FeatureSettingsHelper {
     override var isGoogleLensIntegrationEnabled: Boolean by updatedFeatureFlags::isGoogleLensIntegrationEnabled
     override var isGoogleLensIntegrationUserEnabled: Boolean by updatedFeatureFlags::isGoogleLensIntegrationUserEnabled
     override var isFxSuggestEnabled: Boolean by updatedFeatureFlags::isFxSuggestEnabled
+    override var isPdfToolsEnabled: Boolean by updatedFeatureFlags::isPdfToolsEnabled
     override var showAddressBarInFocusMode: Boolean by updatedFeatureFlags::showAddressBarInFocusMode
     override var crashReportOption: CrashReportOption by updatedFeatureFlags::crashReportOption
 
@@ -141,6 +143,7 @@ class FeatureSettingsHelperDelegate : FeatureSettingsHelper {
         settings.googleLensIntegrationEnabled = featureFlags.isGoogleLensIntegrationEnabled
         settings.googleLensIntegrationUserEnabled = featureFlags.isGoogleLensIntegrationUserEnabled
         settings.enableFxSuggest = featureFlags.isFxSuggestEnabled
+        settings.enablePdfTools = featureFlags.isPdfToolsEnabled
     }
 }
 
@@ -175,6 +178,7 @@ private data class FeatureFlags(
     var isGoogleLensIntegrationEnabled: Boolean,
     var isGoogleLensIntegrationUserEnabled: Boolean,
     var isFxSuggestEnabled: Boolean,
+    var isPdfToolsEnabled: Boolean,
 )
 
 internal fun getETPPolicy(settings: Settings): ETPPolicy {

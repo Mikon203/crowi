@@ -49,6 +49,7 @@ import org.mozilla.fenix.GleanMetrics.Vpn
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
+import org.mozilla.fenix.components.menu.MenuTarget
 import org.mozilla.fenix.components.menu.fake.FakeMenuHost
 import org.mozilla.fenix.components.menu.fake.reachableEvents
 import org.mozilla.fenix.components.menu.store.MenuAction
@@ -65,14 +66,14 @@ class VpnMenuItemProviderTest {
     fun `GIVEN the user is not eligible WHEN building the menu item THEN don't show it`() = runTest {
         val provider = provider(IPProtectionStore(IPProtectionState()))
 
-        assertNull(provider.itemFlow.value)
+        assertTrue(provider.itemsFlow.value.isEmpty())
     }
 
     @Test
     fun `GIVEN IP protection is off WHEN building the menu item THEN show it as a switch that is off`() = runTest {
         val provider = provider(eligibleStore(Uninitialized))
 
-        assertEquals(expectedItem(), provider.itemFlow.value)
+        assertEquals(expectedItem(), provider.itemsFlow.value.single())
     }
 
     @Test
@@ -84,7 +85,7 @@ class VpnMenuItemProviderTest {
                 badgeTextRes = R.string.preferences_ip_protection_on,
                 badgeState = MenuItemState.ACTIVE,
             ),
-            provider.itemFlow.value,
+            provider.itemsFlow.value.single(),
         )
     }
 
@@ -103,7 +104,7 @@ class VpnMenuItemProviderTest {
 
             assertEquals(
                 expectedItem(badgeTextRes = R.string.ip_protection_menu_try_vpn_cta, role = Button),
-                provider.itemFlow.value,
+                provider.itemsFlow.value.single(),
             )
         }
 
@@ -129,7 +130,7 @@ class VpnMenuItemProviderTest {
                 text = Text.Resource(R.string.ip_protection_menu_limit_reached, listOf(5L)),
                 state = MenuItemState.WARNING,
             ),
-            (provider.itemFlow.value as StandardMenuItem).summary,
+            (provider.itemsFlow.value.single() as StandardMenuItem).summary,
         )
     }
 
@@ -137,7 +138,27 @@ class VpnMenuItemProviderTest {
     fun `GIVEN the data limit is unknown WHEN building the menu item THEN don't show a summary`() = runTest {
         val provider = provider(eligibleStore(Uninitialized))
 
-        assertNull((provider.itemFlow.value as StandardMenuItem).summary)
+        assertNull((provider.itemsFlow.value.single() as StandardMenuItem).summary)
+    }
+
+    @Test
+    fun `GIVEN target is CustomizeMenu WHEN building the menu item THEN show it without click events`() = runTest {
+        val provider =
+            VpnMenuItemProvider(
+                eligibleStore(Uninitialized),
+                target = MenuTarget.CustomizeMenu,
+                scope = backgroundScope,
+            )
+
+        assertEquals(
+            StandardMenuItem(
+                title = MenuItemTitle(Text.Resource(R.string.ip_protection_toggle_label)),
+                icon = MenuItemIconRes(iconsR.drawable.mozac_ic_globe_24),
+                onClickEvent = null,
+                state = MenuItemState.DEFAULT,
+            ),
+            provider.itemsFlow.value.single(),
+        )
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -146,12 +167,12 @@ class VpnMenuItemProviderTest {
         val store = eligibleStore(Uninitialized)
         val provider = provider(store)
 
-        assertEquals(expectedItem(), provider.itemFlow.value)
+        assertEquals(expectedItem(), provider.itemsFlow.value.single())
 
         store.dispatch(IPProtectionAction.EligibilityAction.EligibilityChanged(EligibilityStatus.Ineligible))
         runCurrent()
 
-        assertNull(provider.itemFlow.value)
+        assertTrue(provider.itemsFlow.value.isEmpty())
     }
 
     @Test
@@ -235,7 +256,7 @@ class VpnMenuItemProviderTest {
         listOf(Authorized.Idle, Authorized.Active).forEach { status ->
             val provider = provider(eligibleStore(status))
 
-            val events = requireNotNull(provider.itemFlow.value).reachableEvents()
+            val events = provider.itemsFlow.value.single().reachableEvents()
 
             assertTrue(events.all { provider.handles(it) }, "Not all of $events are handled")
             assertFalse(provider.handles(MenuAction.Navigate.Settings))
@@ -246,8 +267,10 @@ class VpnMenuItemProviderTest {
         NavGraphDirections.actionGlobalIpProtectionFragment(entrypoint = FenixFxAEntryPoint.IPProtectionMainMenu)
 
     // The item is kept up to date on a scope that runTest cancels at the end of each test.
-    private fun TestScope.provider(ipProtectionStore: IPProtectionStore) =
-        VpnMenuItemProvider(ipProtectionStore = ipProtectionStore, scope = backgroundScope)
+    private fun TestScope.provider(
+        ipProtectionStore: IPProtectionStore,
+        target: MenuTarget = MenuTarget.BrowserTab,
+    ) = VpnMenuItemProvider(ipProtectionStore = ipProtectionStore, target = target, scope = backgroundScope)
 
     private fun eligibleStore(proxyStatus: ProxyStatus) =
         IPProtectionStore(

@@ -332,6 +332,22 @@ def test_keyboard_interrupt():
     assert "Traceback" not in out
 
 
+@pytest.mark.parametrize(
+    "pattern,expected",
+    [
+        ("foobar.py", True),
+        ("files/foobar.py", False),
+        ("**/foobar.py", True),
+        ("*.js", False),
+    ],
+)
+def test_support_files_relative(lint, filedir, pattern, expected):
+    lint.root = filedir
+    linter = {"support-files": [pattern]}
+    vcs_paths = {os.path.join(filedir, "foobar.py")}
+    assert lint.should_lint_entire_tree(vcs_paths, linter) == expected
+
+
 def test_support_files(lint, linters, filedir, monkeypatch, files):
     jobs = []
 
@@ -434,6 +450,24 @@ def test_setup_all_skipped(lint, linters, filedir, capfd):
     out, err = capfd.readouterr()
     assert "ERROR: all linters were skipped due to setup, nothing to do!" in err
     assert lint.result.failed_setup == set()
+
+
+def test_setup_roll(lint, linters, filedir, capfd):
+    lint.read(linters("setup"))
+    lint.roll(os.path.join(filedir, "foobar.py"))
+    out, err = capfd.readouterr()
+    assert "setup passed" not in out
+
+    lint.roll(os.path.join(filedir, "foobar.js"))
+    out, err = capfd.readouterr()
+    assert "setup passed" in out
+
+
+def test_setup_roll_failed(lint, linters, filedir):
+    lint.read(linters("setupfailed"))
+    result = lint.roll(os.path.join(filedir, "foobar.js"))
+    assert result.failed_setup == set(["SetupFailedLinter"])
+    assert result.returncode == 1
 
 
 if __name__ == "__main__":

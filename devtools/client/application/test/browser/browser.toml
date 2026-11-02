@@ -51,9 +51,6 @@ https_first_disabled = true
 fail-if = [
   "a11y_checks", # Bug 1849028 clicked element may not be focusable and/or labeled
 ]
-skip-if = [
-  "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && ccov", # Bug 1781317
-]
 
 ["browser_application_panel_list-several-workers.js"]
 https_first_disabled = true

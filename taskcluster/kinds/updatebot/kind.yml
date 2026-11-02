@@ -55,6 +55,7 @@ tasks:
             toolchain:
                 - linux64-rust
                 - linux64-cargo-vet
+                - linux64-gn
 
     cron-win:
         description: Cron Job for Updatebot (Windows)

@@ -7752,6 +7752,23 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 * **use live sites**: true
 * **Test Task**:
 
+:::{list-table} **{ref}`test-android-em-14-arm64-shippable/opt <hardware-mac-mini-m4>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-mobile-fenix-youtube-playback-av1-sfr**
+  - ❌
+  - ✅
+  - ❌
+  - ❌
+:::
+
+
 :::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
 :widths: 30 15 15 15 15
 :header-rows: 1
@@ -8977,6 +8994,23 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 * **use live sites**: true
 * **Test Task**:
 
+:::{list-table} **{ref}`test-android-em-14-arm64-shippable/opt <hardware-mac-mini-m4>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-mobile-fenix-youtube-playback-hfr**
+  - ❌
+  - ✅
+  - ❌
+  - ❌
+:::
+
+
 :::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
 :widths: 30 15 15 15 15
 :header-rows: 1
@@ -10125,6 +10159,23 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 * **unit**: score
 * **use live sites**: true
 * **Test Task**:
+
+:::{list-table} **{ref}`test-android-em-14-arm64-shippable/opt <hardware-mac-mini-m4>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-mobile-fenix-youtube-playback-vp9-sfr**
+  - ❌
+  - ✅
+  - ❌
+  - ❌
+:::
+
 
 :::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
 :widths: 30 15 15 15 15
@@ -41303,7 +41354,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#17`
@@ -41326,11 +41377,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-booking-sf**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-booking-sf**
   - ❌
   - ❌
@@ -41383,7 +41429,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#20`
@@ -41406,11 +41452,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-discord**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-discord**
   - ❌
   - ❌
@@ -41463,7 +41504,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#23`
@@ -41486,11 +41527,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-fashionbeans**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-fashionbeans**
   - ❌
   - ❌
@@ -41543,7 +41579,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#26`
@@ -41566,11 +41602,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-google-accounts**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-google-accounts**
   - ❌
   - ❌
@@ -41623,7 +41654,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#29`
@@ -41646,11 +41677,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-imdb-firefox**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-imdb-firefox**
   - ❌
   - ❌
@@ -41703,7 +41729,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#32`
@@ -41726,11 +41752,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-medium-article**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-medium-article**
   - ❌
   - ❌
@@ -41783,7 +41804,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#35`
@@ -41806,11 +41827,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-people-article**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-people-article**
   - ❌
   - ❌
@@ -41863,7 +41879,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#38`
@@ -41886,11 +41902,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-reddit-thread**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-reddit-thread**
   - ❌
   - ❌
@@ -41943,7 +41954,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#41`
@@ -41966,11 +41977,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-rumble-fox**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-rumble-fox**
   - ❌
   - ❌
@@ -42023,7 +42029,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#44`
@@ -42046,11 +42052,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-stackoverflow-question**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-stackoverflow-question**
   - ❌
   - ❌
@@ -42103,7 +42104,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#47`
@@ -42126,11 +42127,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-urbandictionary-define**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-urbandictionary-define**
   - ❌
   - ❌
@@ -42183,7 +42179,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, firefox
+* **apps**: geckoview, fenix, refbrow, firefox
 * **browser cycles**: 15
 * **expected**: pass
 * **link searchfox**: {searchfox}`testing/raptor/raptor/tests/tp6/live/browsertime-live.toml#50`
@@ -42206,11 +42202,6 @@ A set of test pages that are run as live sites instead of recorded versions. The
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-live-chrome-m-wikia-marvel**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-wikia-marvel**
   - ❌
   - ❌
@@ -42268,7 +42259,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -42295,16 +42286,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-essential-chrome-m-allrecipes**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-essential-cstm-car-m-allrecipes**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-essential-fenix-allrecipes**
   - ✅
   - ✅
@@ -42316,11 +42297,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - ❌
   - ❌
 * - **browsertime-tp6m-essential-refbrow-allrecipes**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-allrecipes**
   - ❌
   - ❌
   - ❌
@@ -42392,7 +42368,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -42419,27 +42395,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-amazon**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-amazon**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-amazon**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-amazon**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-amazon**
   - ❌
   - ❌
   - ❌
@@ -42516,7 +42477,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -42543,16 +42504,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-essential-chrome-m-amazon-search**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-essential-cstm-car-m-amazon-search**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-essential-fenix-amazon-search**
   - ✅
   - ✅
@@ -42568,11 +42519,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6m-live-chrome-m-amazon-search**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-live-fenix-amazon-search**
   - ❌
   - ❌
@@ -42584,7 +42530,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - ❌
   - ❌
 * - **browsertime-tp6m-webextensions-fenix-amazon-search**
-  - ✅
+  - ❌
   - ❌
   - ❌
   - ❌
@@ -42650,7 +42596,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -42677,27 +42623,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-bild-de**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-bild-de**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-bild-de**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-bild-de**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-bild-de**
   - ❌
   - ❌
   - ❌
@@ -42774,7 +42705,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -42801,27 +42732,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-bing**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-bing**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-bing**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-bing**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-bing**
   - ❌
   - ❌
   - ❌
@@ -42898,7 +42814,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -42925,27 +42841,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-bing-search-restaurants**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-bing-search-restaurants**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-bing-search-restaurants**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-bing-search-restaurants**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-bing-search-restaurants**
   - ❌
   - ❌
   - ❌
@@ -43022,7 +42923,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -43049,27 +42950,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-booking**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-booking**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-booking**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-booking**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-booking**
   - ❌
   - ❌
   - ❌
@@ -43146,7 +43032,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -43173,27 +43059,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-cnn**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-cnn**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-cnn**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-cnn**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-cnn**
   - ❌
   - ❌
   - ❌
@@ -43270,7 +43141,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -43297,27 +43168,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-cnn-ampstories**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-cnn-ampstories**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-cnn-ampstories**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-cnn-ampstories**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-cnn-ampstories**
   - ❌
   - ❌
   - ❌
@@ -43394,7 +43250,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -43421,27 +43277,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-dailymail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-dailymail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-dailymail**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-dailymail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-dailymail**
   - ❌
   - ❌
   - ❌
@@ -43518,7 +43359,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -43545,27 +43386,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-ebay-kleinanzeigen**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-ebay-kleinanzeigen**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-ebay-kleinanzeigen**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-ebay-kleinanzeigen**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-ebay-kleinanzeigen**
   - ❌
   - ❌
   - ❌
@@ -43642,7 +43468,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -43669,27 +43495,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-ebay-kleinanzeigen-search**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-ebay-kleinanzeigen-search**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-ebay-kleinanzeigen-search**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-ebay-kleinanzeigen-search**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-ebay-kleinanzeigen-search**
   - ❌
   - ❌
   - ❌
@@ -43766,7 +43577,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -43793,16 +43604,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-essential-chrome-m-espn**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-essential-cstm-car-m-espn**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-essential-fenix-espn**
   - ✅
   - ✅
@@ -43814,11 +43615,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - ❌
   - ❌
 * - **browsertime-tp6m-essential-refbrow-espn**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-espn**
   - ❌
   - ❌
   - ❌
@@ -43890,7 +43686,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -43918,16 +43714,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-essential-chrome-m-google**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-essential-cstm-car-m-google**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-essential-fenix-google**
   - ✅
   - ✅
@@ -43939,11 +43725,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - ❌
   - ❌
 * - **browsertime-tp6m-essential-refbrow-google**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-google**
   - ❌
   - ❌
   - ❌
@@ -44015,7 +43796,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -44042,27 +43823,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-google-maps**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-google-maps**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-google-maps**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-google-maps**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-google-maps**
   - ❌
   - ❌
   - ❌
@@ -44139,7 +43905,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -44167,27 +43933,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-google-search-restaurants**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-google-search-restaurants**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-google-search-restaurants**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-google-search-restaurants**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-google-search-restaurants**
   - ❌
   - ❌
   - ❌
@@ -44264,7 +44015,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -44291,27 +44042,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-imdb**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-imdb**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-imdb**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-imdb**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-imdb**
   - ❌
   - ❌
   - ❌
@@ -44388,7 +44124,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -44416,27 +44152,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-instagram**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-instagram**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-instagram**
   - ❌
   - ❌
   - ❌
@@ -44513,7 +44234,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -44540,16 +44261,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-essential-chrome-m-microsoft-support**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-essential-cstm-car-m-microsoft-support**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-essential-fenix-microsoft-support**
   - ✅
   - ✅
@@ -44561,11 +44272,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - ❌
   - ❌
 * - **browsertime-tp6m-essential-refbrow-microsoft-support**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-microsoft-support**
   - ❌
   - ❌
   - ❌
@@ -44637,7 +44343,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -44664,27 +44370,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-reddit**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-reddit**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-reddit**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-reddit**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-reddit**
   - ❌
   - ❌
   - ❌
@@ -44761,7 +44452,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -44788,27 +44479,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-stackoverflow**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-stackoverflow**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-stackoverflow**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-stackoverflow**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-stackoverflow**
   - ❌
   - ❌
   - ❌
@@ -44885,7 +44561,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -44912,27 +44588,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-wikipedia**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-wikipedia**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-wikipedia**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-wikipedia**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-wikipedia**
   - ❌
   - ❌
   - ❌
@@ -45009,7 +44670,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -45036,27 +44697,12 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-chrome-m-youtube**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-cstm-car-m-youtube**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-fenix-youtube**
   - ✅
   - ✅
   - ❌
   - ❌
 * - **browsertime-tp6m-geckoview-youtube**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-youtube**
   - ❌
   - ❌
   - ❌
@@ -45133,7 +44779,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
 * **alert on**: [fcp](raptor-metrics.md#first-paint), [loadtime](raptor-metrics.md#load-time), [ContentfulSpeedIndex](raptor-metrics.md#contentful-speed-index), [PerceptualSpeedIndex](raptor-metrics.md#perceptual-speed-index), [SpeedIndex](raptor-metrics.md#speed-index), [FirstVisualChange](raptor-metrics.md#first-visual-change), [LastVisualChange](raptor-metrics.md#last-visual-change), [largestContentfulPaint](raptor-metrics.md#largest-contentful-paint)
 * **alert threshold**: 2.0
-* **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
+* **apps**: geckoview, fenix, refbrow
 * **benchmark page**: true
 * **browser cycles**: 15
 * **expected**: pass
@@ -45160,16 +44806,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - autoland
   - mozilla-release
   - mozilla-beta
-* - **browsertime-tp6m-essential-chrome-m-youtube-watch**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-essential-cstm-car-m-youtube-watch**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6m-essential-fenix-youtube-watch**
   - ✅
   - ✅
@@ -45181,11 +44817,6 @@ Page-load performance test suite on Android. The links direct to the actual webs
   - ❌
   - ❌
 * - **browsertime-tp6m-essential-refbrow-youtube-watch**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6m-live-chrome-m-youtube-watch**
   - ❌
   - ❌
   - ❌
@@ -45459,6 +45090,107 @@ A composite benchmark that measures page loading and sub-navigation performance 
   - mozilla-release
   - mozilla-beta
 * - **browsertime-nav-bench-firefox-nav-bench**
+  - ❌
+  - ❌
+  - ❌
+  - ❌
+:::
+
+
+::::
+
+(nav-bench-m-n)=
+
+::::{dropdown} nav-bench-m
+:class-container: anchor-id-nav-bench-m-n
+
+* **Command to Run Locally**
+
+  ```
+  ./mach raptor -t nav-bench-m
+  ```
+
+**Owner**: PerfTest Team
+
+**Description**: Fenix navigation benchmark across Amazon, Wikipedia, DuckDuckGo, and BBC in a single combined session.
+
+
+* **accept zero vismet**: false
+* **alert on**: [SpeedIndex](raptor-metrics.md#speed-index)
+* **alert threshold**: 5.0
+* **apps**: fenix
+* **browser cycles**: 5
+* **browsertime visualmetrics**: true
+* **cold**: true
+* **custom data**: true
+* **expected**: pass
+* **expose browser profiler**: true
+* **gecko profile interval**: 1
+* **interactive**: true
+* **link searchfox**: {searchfox}`testing/raptor/raptor/tests/nav-bench/browsertime-nav-bench-m.toml#44`
+* **lower is better**: false
+* **measure**: SpeedIndex
+* **page cycles**: 1
+* **page timeout**: 600000
+* **playback**: mitmproxy-android
+* **playback manifests dir**: nav-bench
+* **playback mode**: direct
+* **playback pageset manifest**: mitm12-android-gve-amazon-nav.manifest,mitm12-android-gve-wikipedia-nav.manifest,mitm12-android-gve-duckduckgo-nav.manifest,mitm12-android-gve-bbc-nav.manifest
+* **playback version**: 12.2.1
+* **preferences**: fission.bfcacheInParent=false browser.sessionhistory.max_total_viewers=0 network.http.http3.enable=false network.http.altsvc.enabled=false
+* **support class**: nav_bench.py
+* **test cmds**: ['wait.byTime', '30000'] ['measure.start', 'amazon-nav-load'] ['navigate', 'https://www.amazon.ca/s?k=laptop'] ['wait.byTime', '2000'] ['measure.stop', ''] ['measure.start', 'amazon-nav-subnav'] ['click.bySelectorAndWait', 'a[href*="/dp/"]'] ['wait.byTime', '2000'] ['measure.stop', ''] ['navigate', 'about:blank'] ['wait.byTime', '1000'] ['measure.start', 'wikipedia-nav-load'] ['navigate', 'https://en.m.wikipedia.org/wiki/Barack_Obama'] ['wait.byTime', '2000'] ['measure.stop', ''] ['measure.start', 'wikipedia-nav-subnav'] ['click.bySelectorAndWait', 'a[href*="/wiki/Honolulu"]'] ['wait.byTime', '2000'] ['measure.stop', ''] ['navigate', 'about:blank'] ['wait.byTime', '1000'] ['measure.start', 'duckduckgo-nav-load'] ['navigate', 'https://duckduckgo.com/?q=mandelbrot+set'] ['wait.byTime', '2000'] ['measure.stop', ''] ['measure.start', 'duckduckgo-nav-subnav'] ['click.bySelectorAndWait', 'a[href*="ia=images"]'] ['wait.byTime', '3000'] ['measure.stop', ''] ['navigate', 'about:blank'] ['wait.byTime', '1000'] ['measure.start', 'bbc-nav-load'] ['navigate', 'https://www.bbc.com/news/'] ['wait.byTime', '2000'] ['measure.stop', ''] ['navigate', 'about:blank'] ['wait.byTime', '1000']
+* **test url**: <about:blank>
+* **type**: pageload
+* **unit**: score
+* **use live sites**: false
+* **verbose**: true
+* **Test Task**:
+
+:::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-nightlyasrelease/opt <hardware-samsung-a55>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-nav-bench-m-fenix-nav-bench-m**
+  - ❌
+  - ✅
+  - ❌
+  - ❌
+:::
+
+
+:::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64-shippable/opt <hardware-samsung-a55>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-nav-bench-m-fenix-nav-bench-m**
+  - ❌
+  - ✅
+  - ❌
+  - ❌
+:::
+
+
+:::{list-table} **{ref}`test-android-hw-a55-14-0-aarch64/opt <hardware-samsung-a55>`**
+:widths: 30 15 15 15 15
+:header-rows: 1
+
+* - **Test Name**
+  - mozilla-central
+  - autoland
+  - mozilla-release
+  - mozilla-beta
+* - **browsertime-nav-bench-m-fenix-nav-bench-m**
   - ❌
   - ❌
   - ❌

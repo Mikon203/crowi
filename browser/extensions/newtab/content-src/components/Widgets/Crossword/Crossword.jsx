@@ -19,12 +19,17 @@ import {
   resolveCrosswordEndpoint,
 } from "common/WidgetsRegistry.mjs";
 import { MoveSubmenu } from "../MoveSubmenu";
+import { WidgetHideMenuItem } from "../WidgetPlacement";
 import { useWidgetTelemetry } from "../useWidgetTelemetry";
 import { WidgetMenuButton } from "../WidgetMenuButton";
+import { WidgetMenuPoweredBy } from "../WidgetMenuPoweredBy";
 
 const USER_ACTION_TYPES = {
   CHANGE_SIZE: "change_size",
+  POWERED_BY_PARTICLE: "powered_by_particle",
 };
+
+const PARTICLE_URL = "https://particle.news";
 
 // postMessage contract with the Particle crossword bundle (per the widget's
 // postMessage API doc). Every message travels on a single channel; the widget
@@ -343,19 +348,6 @@ function Crossword({
     recordUserAction("learn_more", { source: "context_menu" });
   }
 
-  function handlePoweredByParticle() {
-    handleInteraction();
-    dispatch(
-      ac.OnlyToMain({
-        type: at.OPEN_LINK,
-        data: {
-          url: "https://particle.news",
-        },
-      })
-    );
-    recordUserAction("powered_by_particle", { source: "context_menu" });
-  }
-
   return (
     <article
       className={`crossword widget col-4 ${displaySize}-widget`}
@@ -395,12 +387,14 @@ function Crossword({
               </panel-item>
             ))}
 
-            <panel-item
-              className="powered-by-particle"
-              onClick={handlePoweredByParticle}
-            >
-              Powered by Particle
-            </panel-item>
+            <WidgetMenuPoweredBy
+              dispatch={dispatch}
+              url={PARTICLE_URL}
+              l10nId="newtab-crossword-menu-powered-by-particle"
+              recordUserAction={recordUserAction}
+              userAction={USER_ACTION_TYPES.POWERED_BY_PARTICLE}
+              onClick={handleInteraction}
+            />
 
             <hr />
 
@@ -430,9 +424,9 @@ function Crossword({
               widgetEnabledMap={widgetEnabledMap}
             />
 
-            <panel-item
-              data-l10n-id="newtab-widget-menu-hide"
-              onClick={handleCrosswordHide}
+            <WidgetHideMenuItem
+              widgetId="crossword"
+              onHide={handleCrosswordHide}
             />
             <panel-item className="learn-more" onClick={handleLearnMore}>
               Learn more

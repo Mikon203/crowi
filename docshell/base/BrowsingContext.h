@@ -70,6 +70,7 @@ class ContentParent;
 class Element;
 struct LoadingSessionHistoryInfo;
 class Location;
+class NavigationReactivationData;
 template <typename>
 struct Nullable;
 class PreviousSessionHistoryInfo;
@@ -1199,8 +1200,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
 
   MOZ_CAN_RUN_SCRIPT
   void ReactivateDocuments(
-      const Maybe<SessionHistoryInfo>& aReactivatedEntry,
-      const nsTArray<SessionHistoryInfo>& aNewSHEs,
+      const nsTArray<NavigationReactivationData>& aReactivationData,
       const Maybe<PreviousSessionHistoryInfo>& aPreviousEntryForActivation);
 
   MOZ_CAN_RUN_SCRIPT

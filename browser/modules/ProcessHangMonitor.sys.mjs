@@ -450,12 +450,9 @@ export var ProcessHangMonitor = {
    * Show the notification for a hang.
    */
   async showNotification(win, report) {
-    let bundle = win.gNavigatorBundle;
-
     let buttons = [
       {
-        label: bundle.getString("processHang.button_stop2.label"),
-        accessKey: bundle.getString("processHang.button_stop2.accessKey"),
+        "l10n-id": "process-hang-stop-button",
         callback() {
           ProcessHangMonitor.stopIt(win);
         },
@@ -463,10 +460,6 @@ export var ProcessHangMonitor = {
     ];
 
     let message;
-    let doc = win.document;
-    let brandShortName = doc
-      .getElementById("bundle_brand")
-      .getString("brandShortName");
     let notificationTag;
     if (report.addonId) {
       notificationTag = report.addonId;
@@ -476,22 +469,20 @@ export var ProcessHangMonitor = {
 
       let addonName = aps.getExtensionName(report.addonId);
 
-      message = bundle.getFormattedString("processHang.add-on.label2", [
-        addonName,
-        brandShortName,
-      ]);
+      message = {
+        "l10n-id": "process-hang-addon-message",
+        "l10n-args": { addonName },
+      };
 
       buttons.unshift({
-        label: bundle.getString("processHang.add-on.learn-more.text"),
+        "l10n-id": "process-hang-addon-learn-more",
         link: "https://support.mozilla.org/kb/warning-unresponsive-script#w_other-causes",
       });
     } else {
       let scriptBrowser = report.scriptBrowser;
       if (scriptBrowser == win.gBrowser?.selectedBrowser) {
         notificationTag = "selected-tab";
-        message = bundle.getFormattedString("processHang.selected_tab.label", [
-          brandShortName,
-        ]);
+        message = { "l10n-id": "process-hang-selected-tab-message" };
       } else {
         let tab =
           scriptBrowser?.documentGlobal.gBrowser?.getTabForBrowser(
@@ -499,18 +490,15 @@ export var ProcessHangMonitor = {
           );
         if (!tab) {
           notificationTag = "nonspecific_tab";
-          message = bundle.getFormattedString(
-            "processHang.nonspecific_tab.label",
-            [brandShortName]
-          );
+          message = { "l10n-id": "process-hang-nonspecific-tab-message" };
         } else {
           notificationTag = scriptBrowser.browserId.toString();
           let title = tab.getAttribute("label");
           title = elideMiddleOfString(title, 60);
-          message = bundle.getFormattedString(
-            "processHang.specific_tab.label",
-            [title, brandShortName]
-          );
+          message = {
+            "l10n-id": "process-hang-specific-tab-message",
+            "l10n-args": { title },
+          };
         }
       }
     }

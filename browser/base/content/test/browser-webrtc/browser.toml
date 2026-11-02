@@ -18,6 +18,9 @@ prefs = [
 ]
 
 ["browser_WebrtcGlobalInformation.js"]
+skip-if = [
+  "macos_vm", # Bug 2084943 - hangs on the macOS tart VMs
+]
 
 ["browser_device_controls_menus.js"]
 skip-if = [
@@ -133,9 +136,6 @@ run-if = [
 ["browser_stop_sharing_button.js"]
 
 ["browser_stop_streams_on_indicator_close.js"]
-skip-if = [
-  "os == 'win' && os_version == '11.26200' && ccov", # Bug 1775943
-]
 
 ["browser_tab_switch_warning.js"]
 

@@ -4170,13 +4170,6 @@ HttpBaseChannel::GetTrrSkipReason(nsITRRSkipReason::value* aTrrSkipReason) {
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::GetIsLoadedBySocketProcess(bool* aResult) {
-  NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = LoadLoadedBySocketProcess();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 HttpBaseChannel::GetTlsFlags(uint32_t* aTlsFlags) {
   NS_ENSURE_ARG_POINTER(aTlsFlags);
 

@@ -1,3 +1,6 @@
+import { WIDGET_ROW_COMPONENTS } from "content-src/components/Widgets/WidgetsComponentRegistry.jsx";
+import { WidgetLocationContext } from "content-src/components/Widgets/WidgetPlacement";
+import { useContext } from "react";
 import { render, fireEvent, createEvent, act } from "@testing-library/react";
 import { WrapWithProvider } from "test/jest/test-utils";
 import { Provider } from "react-redux";
@@ -54,12 +57,12 @@ const LEGACY_WEATHER_FORECAST_STATE = {
   },
 };
 
-function renderWidgets(state) {
+function renderWidgets(state, props = {}) {
   const store = createStore(combineReducers(reducers), state);
   jest.spyOn(store, "dispatch");
   const { container } = render(
     <Provider store={store}>
-      <Widgets />
+      <Widgets {...props} />
     </Provider>
   );
   return { container, store };
@@ -841,6 +844,82 @@ describe("<Widgets> handleToggleMaximize", () => {
       ).toBeDefined();
     });
 
+    it.each([
+      [undefined, "widget_container"],
+      ["home", "home_space"],
+      ["library", "widget_space"],
+    ])(
+      "should tell its widgets where they render (placement %s: %s)",
+      (placement, location) => {
+        const original = WIDGET_ROW_COMPONENTS.lists;
+        WIDGET_ROW_COMPONENTS.lists = function Probe() {
+          return (
+            <div
+              className="location-probe"
+              data-location={useContext(WidgetLocationContext) ?? ""}
+            />
+          );
+        };
+        try {
+          const { container } = renderWidgets(novaState(), { placement });
+          expect(
+            container.querySelector(".location-probe").dataset.location
+          ).toBe(location);
+        } finally {
+          WIDGET_ROW_COMPONENTS.lists = original;
+        }
+      }
+    );
+
+    it("should only empty the Home list when hiding all on Home", () => {
+      const { container, store } = renderWidgets(novaState(), {
+        placement: "home",
+      });
+
+      fireEvent.click(
+        container.querySelector(
+          "panel-item[data-l10n-id='newtab-widget-section-menu-hide-all']"
+        )
+      );
+
+      const setPrefCalls = actionsFrom(store).filter(
+        action => action?.type === at.SET_PREF
+      );
+      expect(setPrefCalls.map(action => action.data)).toEqual([
+        { name: "widgets.home", value: "[]" },
+      ]);
+      const actions = actionsFrom(store);
+      expect(
+        actions.find(action => action.type === at.WIDGETS_CONTAINER_ACTION).data
+          .action_type
+      ).toBe("remove_all_from_home");
+      expect(
+        actions.some(
+          action =>
+            action.type === at.WIDGETS_HIDE_ALL ||
+            action.type === at.WIDGETS_ENABLED
+        )
+      ).toBe(false);
+    });
+
+    it("should turn widgets off when hiding all in the widget library", () => {
+      const { container, store } = renderWidgets(novaState(), {
+        placement: "library",
+      });
+
+      fireEvent.click(
+        container.querySelector(
+          "panel-item[data-l10n-id='newtab-widget-section-menu-hide-all']"
+        )
+      );
+
+      const names = actionsFrom(store)
+        .filter(action => action?.type === at.SET_PREF)
+        .map(action => action.data.name);
+      expect(names).toContain(PREF_WIDGETS_LISTS_ENABLED);
+      expect(names).not.toContain("widgets.home");
+    });
+
     it("should dispatch Learn more actions from the Nova header menu", () => {
       const { container, store } = renderWidgets(novaState());
 
@@ -1041,6 +1120,48 @@ function makeNovaWidgetState(widgets, extraPrefs = {}) {
     Weather: { ...INITIAL_STATE.Weather, initialized: true },
   };
 }
+
+describe("<Widgets> sidebar widget leaves the row", () => {
+  const PRIVACY_SIDEBAR = {
+    "widgets.privacy.enabled": true,
+    "widgets.system.privacy.enabled": true,
+    "widgets.privacy.size": "small",
+    trainhopConfig: { widgets: { privacySidebar: true } },
+  };
+
+  function rowWidgetIds(container) {
+    return [
+      ...container.querySelectorAll(".widget-wrapper[data-widget-id]"),
+    ].map(el => el.getAttribute("data-widget-id"));
+  }
+
+  it("keeps small weather out of the row", () => {
+    const state = makeNovaWidgetState([
+      ["lists", "medium"],
+      ["weather", "small"],
+    ]);
+    const { container } = renderWidgets(state);
+    expect(rowWidgetIds(container)).toEqual(["lists"]);
+  });
+
+  it("keeps privacy out of the row when trainhop places it in the sidebar", () => {
+    const state = makeNovaWidgetState([["lists", "medium"]], PRIVACY_SIDEBAR);
+    const { container } = renderWidgets(state);
+    expect(rowWidgetIds(container)).toEqual(["lists"]);
+  });
+
+  it("puts the widget that loses the single sidebar slot in the row", () => {
+    const state = makeNovaWidgetState(
+      [
+        ["lists", "medium"],
+        ["weather", "small"],
+      ],
+      PRIVACY_SIDEBAR
+    );
+    const { container } = renderWidgets(state);
+    expect(rowWidgetIds(container)).toEqual(["lists", "privacy"]);
+  });
+});
 
 describe("<Widgets> overflow detection", () => {
   function getSectionContainer(container) {
@@ -1629,6 +1750,38 @@ describe("<Widgets> maximize toggle size sync", () => {
     expect(weatherSets).toHaveLength(0);
   });
 
+  it("resizes a small widget that lost the sidebar slot", () => {
+    const state = makeNovaWidgetState(
+      [
+        ["clocks", "medium"],
+        ["weather", "small"],
+      ],
+      {
+        ...MAXIMIZABLE,
+        "widgets.privacy.enabled": true,
+        "widgets.system.privacy.enabled": true,
+        "widgets.privacy.size": "small",
+        trainhopConfig: { widgets: { privacySidebar: true } },
+      }
+    );
+    const { container, store } = renderWidgets(state);
+
+    clickMaximize(container);
+
+    const sets = sizePrefSets(store);
+    expect(sets).toContainEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: "widgets.privacy.size",
+          value: "large",
+        }),
+      })
+    );
+    expect(
+      sets.filter(action => action.data.name === "widgets.weather.size")
+    ).toHaveLength(0);
+  });
+
   it("resizes weather when it is in the row (not small)", () => {
     const state = makeNovaWidgetState(
       [
@@ -1778,7 +1931,7 @@ describe("<Widgets> auto-minimize layout", () => {
   });
 
   it("collapses the section after the configured delay", () => {
-    const { container, store } = renderWidgets(
+    const { container } = renderWidgets(
       makeState({
         "pageLayouts.variant": "auto-minimize-widgets",
         "pageLayouts.autoMinimizeDelayMs": 3000,
@@ -1798,13 +1951,6 @@ describe("<Widgets> auto-minimize layout", () => {
     expect(widgetsContainer(container)).toHaveAttribute(
       "data-section-collapsed"
     );
-    expect(containerActions(store)).toEqual([
-      {
-        action_type: "auto_minimize",
-        action_value: "collapse_section",
-        widget_size: "medium",
-      },
-    ]);
   });
 
   it("prefers the trainhopConfig delay over the pref", () => {
@@ -1917,7 +2063,6 @@ describe("<Widgets> auto-minimize layout", () => {
     act(() => {
       jest.advanceTimersByTime(100);
     });
-    expect(containerActions(store)).toHaveLength(1);
 
     // Any PREF_CHANGED hands the component a fresh prefs object.
     act(() => {
@@ -1930,11 +2075,6 @@ describe("<Widgets> auto-minimize layout", () => {
       jest.advanceTimersByTime(60000);
     });
 
-    expect(
-      containerActions(store).filter(
-        data => data.action_value === "collapse_section"
-      )
-    ).toHaveLength(1);
     expect(widgetsContainer(container)).toHaveAttribute(
       "data-section-collapsed"
     );

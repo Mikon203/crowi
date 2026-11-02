@@ -64,14 +64,18 @@ already running is the normal case. Each helper takes a named mutex for its prof
 starts. If the mutex already exists, another helper is serving that profile, so
 the new one exits with success. The mutex is released when the process exits.
 
-A helper serves exactly one profile. Several profiles, or several
-installations, can each have their own helper at the same time.
+A helper serves exactly one profile, and a profile has at most one helper,
+even when several installations use it. The first helper to start wins,
+whichever installation it belongs to. Different profiles can each have their
+own helper at the same time.
 
-The names of the Windows objects are built from a hash of the installation
-directory and the profile directory:
+The names of the Windows objects are built from a hash of these paths:
 
-- `Local\MozillaNotificationHelper-profile-<hash>`: the per profile mutex.
+- `Local\MozillaNotificationHelper-profile-<hash>`: the per profile mutex. Its
+  hash only covers the profile directory, so it's shared by every
+  installation.
 - `Local\MozillaNotificationHelper-stop-<hash>`: the per profile stop event.
+  Its hash covers the installation directory and the profile directory.
 - `Global\MozillaNotificationHelper-stop-<hash>`: the stop event shared by all
   helpers of an installation. Its hash only covers the installation directory.
 
@@ -149,6 +153,9 @@ profile stop event, so only that profile's helper exits.
 `notification-helper.exe --stop` signals the installation's shared event, so
 every helper of that installation exits. Both succeed when no helper is
 running.
+
+Stop events stay per installation. If a helper from another installation
+serves the profile, neither command stops it.
 
 The shared event lives in the `Global\` namespace and any authenticated user
 can signal it. This lets the installer stop the helpers even when it runs

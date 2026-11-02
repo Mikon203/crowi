@@ -251,8 +251,8 @@ pref("media.videocontrols.keyboard-tab-to-all-controls", true);
   pref("media.navigator.video.offer_rtcp_rsize", true);
 
   #ifdef NIGHTLY_BUILD
-    pref("media.peerconnection.sdp.parser", "sipcc");
-    pref("media.peerconnection.sdp.alternate_parse_mode", "parallel");
+    pref("media.peerconnection.sdp.parser", "webrtc-sdp");
+    pref("media.peerconnection.sdp.alternate_parse_mode", "never");
     pref("media.peerconnection.sdp.strict_success", false);
   #else
     pref("media.peerconnection.sdp.parser", "sipcc");
@@ -3000,6 +3000,9 @@ pref("signon.signupDetection.confidenceThreshold",     "0.75");
 #endif
 // Kill switch for restoring logins out of a deactivated Rust backend.
 pref("signon.storage.rust.restoreEnabled", true);
+// Stop prompting for the primary password at startup to migrate after this
+// many canceled prompts; 0 means no limit.
+pref("signon.storage.rust.maxPrimaryPasswordDeferrals", 3);
 // The following four prefs are managed by Fx internally:
 pref("signon.storage.rust.active", false);
 pref("signon.storage.rust.migrationAttempts", 0);
@@ -3007,6 +3010,7 @@ pref("signon.storage.rust.restoreAttempts", 0);
 pref("signon.storage.rust.restoreAttemptsVersion", 0);
 pref("signon.storage.rust.restoreVersion", 0);
 pref("signon.storage.rust.restoreTargetVersion", 1);
+pref("signon.storage.rust.primaryPasswordDeferrals", 0);
 
 // Satchel (Form Manager) prefs
 pref("browser.formfill.debug",            false);
@@ -3807,13 +3811,6 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   pref("services.sync.telemetry.submissionInterval", 43200); // 12 hours in seconds
   pref("services.sync.telemetry.maxPayloadCount", 500);
 
-  #ifdef EARLY_BETA_OR_EARLIER
-    // Enable the (fairly costly) client/server validation through early Beta, but
-    // not release candidates or Release.
-    pref("services.sync.engine.bookmarks.validation.enabled", true);
-    pref("services.sync.engine.passwords.validation.enabled", true);
-  #endif
-
   // We consider validation this frequently. After considering validation, even
   // if we don't end up validating, we won't try again unless this much time has passed.
   pref("services.sync.engine.bookmarks.validation.interval", 86400); // 24 hours in seconds
@@ -4106,14 +4103,21 @@ pref("extensions.formautofill.addresses.storage.rust.enabled", false);
 // reading from where its addresses are.
 pref("extensions.formautofill.addresses.storage.rust.active", false);
 // Run the migration purely to measure it, while the pref above is still off.
-// The copy is reported through migrate_to_rust and then wiped, once per profile
-// per generation: it is what says whether the real move is safe to make.
+// The copy is reported through migrate_to_rust and then wiped. A failed run is
+// retried on later launches until it succeeds or spends its budget; each
+// generation is measured once per profile. It is what says whether the real
+// move is safe to make.
 pref("extensions.formautofill.addresses.storage.rust.runMigrationTest", false);
 // Which generation of the dry run above this profile has done, so a build that
 // fixes a migration bug can bump it and measure the same profiles again.
 pref("extensions.formautofill.addresses.storage.rust.migrationTestVersion", 0);
+// How many launches have already tried and failed the dry run of the current
+// generation. Managed by Firefox, which records the generation as done after a
+// budget.
+pref("extensions.formautofill.addresses.storage.rust.migrationTestAttempts", 0);
 // How many launches have already tried and failed to migrate. Managed by
-// Firefox, which gives up after a budget.
+// Firefox, which gives up after a budget: the enabled pref above is then
+// treated as false while this stays at the budget.
 pref("extensions.formautofill.addresses.storage.rust.migrationAttempts", 0);
 
 // Move desktop credit cards to the Application Services autofill store. Read at
@@ -4125,9 +4129,10 @@ pref("extensions.formautofill.creditCards.storage.rust.enabled", false);
 // reading from where its cards are.
 pref("extensions.formautofill.creditCards.storage.rust.active", false);
 // Run the migration purely to measure it, while the pref above is still off.
-// The copy is reported through migrate_to_rust and then wiped. Nightly only,
-// and once per profile per generation: it is what says whether the real move is
-// safe to make.
+// The copy is reported through migrate_to_rust and then wiped. A failed run is
+// retried on later launches until it succeeds or spends its budget; each
+// generation is measured once per profile. Nightly only: it is what says whether
+// the real move is safe to make.
 #ifdef NIGHTLY_BUILD
   pref("extensions.formautofill.creditCards.storage.rust.runMigrationTest", true);
 #else
@@ -4136,8 +4141,13 @@ pref("extensions.formautofill.creditCards.storage.rust.active", false);
 // Which generation of the dry run above this profile has done, so a build that
 // fixes a migration bug can bump it and measure the same profiles again.
 pref("extensions.formautofill.creditCards.storage.rust.migrationTestVersion", 0);
+// How many launches have already tried and failed the dry run of the current
+// generation. Managed by Firefox, which records the generation as done after a
+// budget.
+pref("extensions.formautofill.creditCards.storage.rust.migrationTestAttempts", 0);
 // How many launches have already tried and failed to migrate. Managed by
-// Firefox, which gives up after a budget.
+// Firefox, which gives up after a budget: the enabled pref above is then
+// treated as false while this stays at the budget.
 pref("extensions.formautofill.creditCards.storage.rust.migrationAttempts", 0);
 pref("extensions.formautofill.creditCards.supported", "on");
 pref("extensions.formautofill.creditCards.enabled", true);

@@ -417,7 +417,26 @@ function formatRelativeTime(timestamp, locale, now, justNowL10nId) {
   return { text: null, l10nId: justNowL10nId };
 }
 
+/**
+ * Focus a moz-button that may have just been created. Its inner button only
+ * exists after the first render, and focus() on the host does nothing until
+ * then, so wait for that render if one is pending.
+ *
+ * @param {HTMLElement|null} el
+ */
+function focusOnceRendered(el) {
+  if (!el) {
+    return;
+  }
+  if (el.updateComplete) {
+    el.updateComplete.then(() => el.focus());
+  } else {
+    el.focus();
+  }
+}
+
 export {
+  focusOnceRendered,
   formatRelativeTime,
   useIntersectionObserver,
   useSizeSubmenu,

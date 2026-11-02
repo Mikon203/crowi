@@ -2765,6 +2765,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(Document)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPendingFullscreenEvents)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mParser)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mScriptGlobalObject)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mGlobalCustomElementRegistry)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mListenerManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStyleSheetSetList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mScriptLoader)
@@ -2929,6 +2930,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Document)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mHighlightRegistry)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPendingFullscreenEvents)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mParser)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mGlobalCustomElementRegistry)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mOnloadBlocker)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDOMImplementation)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mImageMaps)
@@ -8705,6 +8707,9 @@ void Document::SetScriptGlobalObject(
   // having to QI every time it's asked for.
   nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(mScriptGlobalObject);
   mWindow = window;
+  if (mWindow) {
+    mGlobalCustomElementRegistry = mWindow->CustomElements();
+  }
 
   if (mReadyState != READYSTATE_COMPLETE) {
     if (auto* wgc = GetWindowGlobalChild()) {
@@ -21764,7 +21769,8 @@ ColorScheme Document::DefaultColorScheme() const {
   return LookAndFeel::ColorSchemeForStyle(*this, {GetColorSchemeBits()});
 }
 
-ColorScheme Document::PreferredColorScheme(IgnoreRFP aIgnoreRFP) const {
+PrefersColorSchemeOverride Document::GetOverriddenOrEmbedderColorScheme(
+    IgnoreRFP aIgnoreRFP) const {
   nsPresContext* pc = GetPresContext();
   const bool printing = pc && pc->Medium() == nsGkAtoms::print;
   if (auto flags = StyleColorSchemeFlags{GetColorSchemeBits()};
@@ -21775,25 +21781,33 @@ ColorScheme Document::PreferredColorScheme(IgnoreRFP aIgnoreRFP) const {
     const bool supportsLight(flags & StyleColorSchemeFlags::LIGHT);
     const bool only(flags & StyleColorSchemeFlags::ONLY);
     if (supportsDark != supportsLight && (!printing || only)) {
-      return supportsDark ? ColorScheme::Dark : ColorScheme::Light;
+      return supportsDark ? PrefersColorSchemeOverride::Dark
+                          : PrefersColorSchemeOverride::Light;
     }
   }
 
   if (printing) {
-    return ColorScheme::Light;
+    return PrefersColorSchemeOverride::Light;
   }
 
   if (ShouldResistFingerprinting(RFPTarget::CSSPrefersColorScheme) &&
       aIgnoreRFP == IgnoreRFP::No) {
-    return ColorScheme::Light;
+    return PrefersColorSchemeOverride::Light;
   }
 
-  if (pc) {
-    if (auto scheme = pc->GetOverriddenOrEmbedderColorScheme()) {
-      return *scheme;
-    }
-  }
+  return pc ? pc->GetOverriddenOrEmbedderColorScheme()
+            : PrefersColorSchemeOverride::None;
+}
 
+ColorScheme Document::PreferredColorScheme(IgnoreRFP aIgnoreRFP) const {
+  switch (GetOverriddenOrEmbedderColorScheme(aIgnoreRFP)) {
+    case PrefersColorSchemeOverride::Dark:
+      return ColorScheme::Dark;
+    case PrefersColorSchemeOverride::Light:
+      return ColorScheme::Light;
+    case PrefersColorSchemeOverride::None:
+      break;
+  }
   return PreferenceSheet::PrefsFor(*this).mColorScheme;
 }
 

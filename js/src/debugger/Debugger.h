@@ -702,24 +702,9 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
   void recomputeDebuggeeZoneSet();
 
   /*
-   * Return true if there is an existing object metadata callback for the
-   * given global's compartment that will prevent our instrumentation of
-   * allocations.
-   */
-  static bool cannotTrackAllocations(const GlobalObject& global);
-
-  /*
-   * Check whether there is an existing object metadata callback for the given
-   * global's compartment and throw an exception if so.
-   */
-  [[nodiscard]] static bool checkCanAddAllocationsTracking(
-      JSContext* cx, Handle<GlobalObject*> debuggee);
-
-  /*
    * Add allocations tracking for objects allocated within the given debuggee's
    * compartment. The given debuggee global must be observed by at least one
-   * Debugger that is tracking allocations and there must be no existing object
-   * metadata callback installed.
+   * Debugger that is tracking allocations.
    */
   static void addAllocationsTracking(JSContext* cx,
                                      Handle<GlobalObject*> debuggee);
@@ -734,7 +719,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
   /*
    * Add or remove allocations tracking for all debuggees.
    */
-  [[nodiscard]] bool addAllocationsTrackingForAllDebuggees(JSContext* cx);
+  void addAllocationsTrackingForAllDebuggees(JSContext* cx);
   void removeAllocationsTrackingForAllDebuggees();
 
   /*

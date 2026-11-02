@@ -322,11 +322,6 @@ tasks:
         treeherder:
             symbol: fenix-nightly(Bf)
             platform: fenix-android-all/opt
-        worker:
-            artifacts:
-                - path: /builds/worker/workspace/obj-build/gradle/build/mobile/android/fenix/app/outputs/mapping/nightly/mapping.txt
-                  name: public/build/mapping.txt
-                  type: file
 
     focus-beta-firebase:
         description: 'Focus Beta build for UI tests'

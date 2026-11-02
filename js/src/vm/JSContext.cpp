@@ -27,6 +27,7 @@
 #include "jstypes.h"
 
 #include "builtin/RegExp.h"  // js::RegExpSearcherLastLimitSentinel
+#include "builtin/TestingFunctions.h"
 #ifdef MOZ_EXECUTION_TRACING
 #  include "debugger/ExecutionTracer.h"
 #endif
@@ -1234,7 +1235,8 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       bypassCSPForDebugger(this, false),
       hasDebuggerForcedLexicalInit(this, false),
       insideExclusiveDebuggerOnEval(this, nullptr),
-      microTaskQueues(this) {
+      microTaskQueues(this),
+      testingFunctionData_(this) {
   MOZ_ASSERT(static_cast<JS::RootingContext*>(this) ==
              JS::RootingContext::get(this));
 
@@ -1278,6 +1280,17 @@ JSContext::~JSContext() {
   }
 
   TlsContext.set(nullptr);
+}
+
+TestingFunctionData* JSContext::getOrCreateTestingFunctionData() {
+  if (!testingFunctionData_.ref()) {
+    testingFunctionData_ = MakeUnique<TestingFunctionData>();
+    if (!testingFunctionData_.ref()) {
+      ReportOutOfMemory(this);
+      return nullptr;
+    }
+  }
+  return testingFunctionData_.ref().get();
 }
 
 void JSContext::unsetOOMStackTrace() { oomStackTraceBufferValid_ = false; }

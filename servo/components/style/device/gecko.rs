@@ -6,7 +6,6 @@
 
 use crate::color::AbsoluteColor;
 use crate::context::QuirksMode;
-use crate::custom_properties::CssEnvironment;
 use crate::device::Device;
 use crate::font_metrics::FontMetrics;
 use crate::gecko::wrapper::GeckoElement;
@@ -16,6 +15,7 @@ use crate::logical_geometry::WritingMode;
 use crate::media_queries::MediaType;
 use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
+use crate::substitution::env::CssEnvironment;
 use crate::values::computed::font::GenericFontFamily;
 use crate::values::computed::{ColorScheme, Length, LinkParameters, NonNegativeLength};
 use crate::values::specified::ViewportVariant;
@@ -48,11 +48,15 @@ unsafe impl Send for Device {}
 impl Device {
     /// Trivially constructs a new `Device`.
     pub fn new(document: *const structs::Document) -> Self {
+        use nsstring::nsString;
+
         assert!(!document.is_null());
         let doc = unsafe { &*document };
         let prefs = unsafe { &*bindings::Gecko_GetPrefSheetPrefs(doc) };
         let default_values = ComputedValues::default_values(doc);
         let root_style = RwLock::new(Arc::clone(&default_values));
+        let mut submit_str = nsString::new();
+        unsafe { bindings::Gecko_GetSubmitString(doc, &mut *submit_str) };
         Device {
             default_values,
             root_style,
@@ -69,6 +73,7 @@ impl Device {
             used_viewport_size: AtomicBool::new(false),
             used_dynamic_viewport_size: AtomicBool::new(false),
             environment: CssEnvironment,
+            submit_string: submit_str.to_string().into(),
             // This gets updated when we see the <body>, so it doesn't really
             // matter which color-scheme we look at here.
             body_text_color: RwLock::new(AbsoluteColor::from_nscolor(prefs.mLightColors.mDefault)),

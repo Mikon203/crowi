@@ -827,10 +827,13 @@ export class nsContextMenu {
   }
 
   initViewItems() {
-    // View source is always OK, unless in directory listing.
+    var inMiniWindow =
+      this.document.documentElement.hasAttribute("mini-window");
+
     this.showItem(
       "context-viewpartialsource-selection",
       !this.inAboutDevtoolsToolbox &&
+        !inMiniWindow &&
         this.isContentSelected &&
         this.selectionInfo.isDocumentLevelSelection
     );
@@ -851,12 +854,14 @@ export class nsContextMenu {
       this.onAudio ||
       this.onLink ||
       this.onTextInput ||
-      this.window.browsingContext.isDocumentPiP
+      this.window.browsingContext.isDocumentPiP ||
+      inMiniWindow
     );
 
     var showInspect =
       this.inTabBrowser &&
       !this.inAboutDevtoolsToolbox &&
+      !inMiniWindow &&
       Services.prefs.getBoolPref("devtools.inspector.enabled", true) &&
       !Services.prefs.getBoolPref("devtools.policy.disabled", false) &&
       !(

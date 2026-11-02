@@ -1846,10 +1846,9 @@ class TlsAutoIncrement {
 nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
                    const char* aCharset /* = nullptr */,
                    nsIURI* aBaseURI /* = nullptr */) {
-  // we don't expect any other processes than: socket, content or parent
+  // we don't expect any other processes than: content or parent
   // to be able to create a URL
-  MOZ_ASSERT(XRE_IsSocketProcess() || XRE_IsContentProcess() ||
-             XRE_IsParentProcess());
+  MOZ_ASSERT(XRE_IsContentProcess() || XRE_IsParentProcess());
   TlsAutoIncrement<decltype(gTlsURLRecursionCount)> inc(gTlsURLRecursionCount);
   if (inc.value() >= MAX_RECURSION_COUNT) {
     return NS_ERROR_MALFORMED_URI;
@@ -2768,11 +2767,6 @@ nsresult NS_GetFilenameFromDisposition(nsAString& aFilename,
 }
 
 void net_EnsurePSMInit() {
-  if (XRE_IsSocketProcess()) {
-    EnsureNSSInitializedChromeOrContent();
-    return;
-  }
-
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 

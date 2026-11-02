@@ -2152,6 +2152,15 @@ void WebrtcVideoConduit::GenerateKeyFrame(const Maybe<std::string>& aRid,
       }));
 }
 
+void WebrtcVideoConduit::GenerateKeyFrames(std::vector<std::string> aRids) {
+  mCallThread->Dispatch(NS_NewRunnableFunction(
+      __func__, [this, self = RefPtr(this), rids = std::move(aRids)] {
+        if (mSendStream) {
+          mSendStream->GenerateKeyFrame(rids);
+        }
+      }));
+}
+
 bool WebrtcVideoConduit::HasCodecPluginID(uint64_t aPluginID) const {
   MOZ_ASSERT(NS_IsMainThread());
 

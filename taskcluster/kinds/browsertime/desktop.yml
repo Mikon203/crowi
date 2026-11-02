@@ -1280,15 +1280,18 @@ browsertime-webcodecs:
         extra-options:
             by-app:
                 firefox:
+                    - --conditioned-profile=settled
                     - --extra-profiler-run
                 default:
                     by-test-platform:
                         # Chrome's out-of-process video capture service crashes on Windows when capturing
                         # from the fake camera, so run it in the browser process there.
                         windows.*:
+                            - --conditioned-profile=settled
                             - --extra-profiler-run
                             - --browsertime-arg=chrome.args=--enable-features=RunVideoCaptureServiceInBrowserProcess
                         default:
+                            - --conditioned-profile=settled
                             - --extra-profiler-run
     run-on-projects:
         by-app:

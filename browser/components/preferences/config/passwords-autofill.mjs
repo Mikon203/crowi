@@ -409,6 +409,9 @@ Preferences.addSetting({
   id: "saveSecurityCodes",
   pref: ENABLED_AUTOFILL_CREDITCARDS_CVV_PREF,
   visible: () => FormAutofill.isAutofillCreditCardCVVSupported,
+  onUserChange(enabled) {
+    lazy.FormAutofillPreferences.recordCvvSavingToggled(enabled, "settings");
+  },
 });
 
 Preferences.addSetting({

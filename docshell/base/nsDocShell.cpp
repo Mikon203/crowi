@@ -693,9 +693,10 @@ NS_IMETHODIMP
 nsDocShell::SetCancelContentJSEpoch(int32_t aEpoch) {
   // Note: this gets called fairly early (before a pageload actually starts).
   // We could probably defer this even longer.
-  nsCOMPtr<nsIBrowserChild> browserChild = GetBrowserChild();
-  static_cast<BrowserChild*>(browserChild.get())
-      ->SetCancelContentJSEpoch(aEpoch);
+  if (nsCOMPtr<nsIBrowserChild> browserChild = GetBrowserChild()) {
+    static_cast<BrowserChild*>(browserChild.get())
+        ->SetCancelContentJSEpoch(aEpoch);
+  }
   return NS_OK;
 }
 
@@ -945,7 +946,7 @@ NS_IMETHODIMP StopDetector::CancelWithReason(nsresult aStatus,
 }
 
 NS_IMETHODIMP
-StopDetector::Cancel(nsresult aStatus) {
+StopDetector::Cancel(nsresult /*aStatus*/) {
   mCanceled = true;
   return NS_OK;
 }
@@ -962,7 +963,7 @@ StopDetector::GetLoadGroup(nsILoadGroup** aLoadGroup) {
 }
 
 NS_IMETHODIMP
-StopDetector::SetLoadGroup(nsILoadGroup* aLoadGroup) { return NS_OK; }
+StopDetector::SetLoadGroup(nsILoadGroup* /*aLoadGroup*/) { return NS_OK; }
 
 NS_IMETHODIMP
 StopDetector::GetLoadFlags(nsLoadFlags* aLoadFlags) {
@@ -981,7 +982,7 @@ StopDetector::SetTRRMode(nsIRequest::TRRMode aTRRMode) {
 }
 
 NS_IMETHODIMP
-StopDetector::SetLoadFlags(nsLoadFlags aLoadFlags) { return NS_OK; }
+StopDetector::SetLoadFlags(nsLoadFlags /*aLoadFlags*/) { return NS_OK; }
 
 bool nsDocShell::MaybeHandleSubframeHistory(
     nsDocShellLoadState* aLoadState, bool aContinueHandlingSubframeHistory) {
@@ -2222,7 +2223,7 @@ nsDocShell::GetZoom(float* aZoom) {
 }
 
 NS_IMETHODIMP
-nsDocShell::SetZoom(float aZoom) { return NS_ERROR_NOT_IMPLEMENTED; }
+nsDocShell::SetZoom(float /*aZoom*/) { return NS_ERROR_NOT_IMPLEMENTED; }
 
 NS_IMETHODIMP
 nsDocShell::GetBusyFlags(BusyFlags* aBusyFlags) {
@@ -4816,13 +4817,13 @@ void nsDocShell::DoGetPositionAndSize(int32_t* aX, int32_t* aY, int32_t* aWidth,
 }
 
 NS_IMETHODIMP
-nsDocShell::SetDimensions(DimensionRequest&& aRequest) {
+nsDocShell::SetDimensions(DimensionRequest&& /*aRequest*/) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-nsDocShell::GetDimensions(DimensionKind aDimensionKind, int32_t* aX,
-                          int32_t* aY, int32_t* aCX, int32_t* aCY) {
+nsDocShell::GetDimensions(DimensionKind /*aDimensionKind*/, int32_t* /*aX*/,
+                          int32_t* /*aY*/, int32_t* /*aCX*/, int32_t* /*aCY*/) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -4845,7 +4846,7 @@ nsDocShell::SetParentWidget(nsIWidget* aParentWidget) {
 }
 
 NS_IMETHODIMP
-nsDocShell::GetNativeHandle(nsAString& aNativeHandle) {
+nsDocShell::GetNativeHandle(nsAString& /*aNativeHandle*/) {
   // the nativeHandle should be accessed from nsIAppWindow
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -4988,7 +4989,7 @@ nsDocShell::GetEnabled(bool* aEnabled) {
 }
 
 NS_IMETHODIMP
-nsDocShell::SetEnabled(bool aEnabled) { return NS_ERROR_NOT_IMPLEMENTED; }
+nsDocShell::SetEnabled(bool /*aEnabled*/) { return NS_ERROR_NOT_IMPLEMENTED; }
 
 NS_IMETHODIMP
 nsDocShell::GetMainWidget(nsIWidget** aMainWidget) {
@@ -5956,8 +5957,9 @@ nsDocShell::OnSecurityChange(nsIWebProgress* aWebProgress, nsIRequest* aRequest,
 }
 
 NS_IMETHODIMP
-nsDocShell::OnContentBlockingEvent(nsIWebProgress* aWebProgress,
-                                   nsIRequest* aRequest, uint32_t aEvent) {
+nsDocShell::OnContentBlockingEvent(nsIWebProgress* /*aWebProgress*/,
+                                   nsIRequest* /*aRequest*/,
+                                   uint32_t /*aEvent*/) {
   MOZ_ASSERT_UNREACHABLE("notification excluded in AddProgressListener(...)");
   return NS_OK;
 }
@@ -6425,7 +6427,7 @@ nsresult nsDocShell::FilterStatusForErrorPage(
   return NS_OK;
 }
 
-nsresult nsDocShell::EndPageLoad(nsIWebProgress* aProgress,
+nsresult nsDocShell::EndPageLoad(nsIWebProgress* /*aProgress*/,
                                  nsIChannel* aChannel, nsresult aStatus) {
   MOZ_LOG(gDocShellLeakLog, LogLevel::Debug,
           ("DOCSHELL %p EndPageLoad status: %" PRIx32 "\n", this,
@@ -6725,7 +6727,7 @@ nsresult nsDocShell::CreateAboutBlankDocumentViewer(
     nsIPolicyContainer* aPolicyContainer, nsIURI* aBaseURI,
     bool aIsInitialDocument,
     const Maybe<nsILoadInfo::CrossOriginEmbedderPolicy>& aCOEP,
-    bool aTryToSaveOldPresentation, bool aCheckPermitUnload,
+    bool /*aTryToSaveOldPresentation*/, bool aCheckPermitUnload,
     WindowGlobalChild* aActor) {
   RefPtr<Document> blankDoc;
   nsCOMPtr<nsIDocumentViewer> viewer;
@@ -6886,18 +6888,18 @@ nsresult nsDocShell::CreateAboutBlankDocumentViewer(
       // same reference) otherwise modifying the new container (such as
       // appending a new policy to CSP) within the new document will be
       // incorrectly propagated to the opening doc.
+      RefPtr policyContainerToInherit = MakeRefPtr<PolicyContainer>();
       if (aPolicyContainer) {
-        RefPtr policyContainerToInherit = MakeRefPtr<PolicyContainer>();
         policyContainerToInherit->InitFromOther(
             PolicyContainer::Cast(aPolicyContainer));
-        blankDoc->SetPolicyContainer(policyContainerToInherit);
-        if (!PolicyContainer::GetCSP(policyContainerToInherit)) {
-          RefPtr newCsp = MakeRefPtr<nsCSPContext>();
-          policyContainerToInherit->SetCSP(newCsp);
-          nsresult rv = newCsp->SetRequestContextWithDocument(blankDoc);
-          if (NS_WARN_IF(NS_FAILED(rv))) {
-            return rv;
-          }
+      }
+      blankDoc->SetPolicyContainer(policyContainerToInherit);
+      if (!PolicyContainer::GetCSP(policyContainerToInherit)) {
+        RefPtr newCsp = MakeRefPtr<nsCSPContext>();
+        policyContainerToInherit->SetCSP(newCsp);
+        nsresult rv = newCsp->SetRequestContextWithDocument(blankDoc);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
         }
       }
 
@@ -6985,7 +6987,7 @@ nsDocShell::CreateAboutBlankDocumentViewer(
 
 /* static */
 void nsDocShell::ReportBFCacheComboTelemetry(uint32_t aCombo) {
-  // There are 11 possible reasons to make a request fails to use BFCache
+  // There are many possible reasons to make a request fails to use BFCache
   // (see BFCacheStatus in dom/base/Document.h), and we'd like to record
   // the common combinations for reasons which make requests fail to use
   // BFCache. These combinations are generated based on some local browsings,
@@ -7018,6 +7020,15 @@ void nsDocShell::ReportBFCacheComboTelemetry(uint32_t aCombo) {
     REMOTE_SUBFRAMES = mozilla::dom::BFCacheStatus::CONTAINS_REMOTE_SUBFRAMES,
     BEFOREUNLOAD = mozilla::dom::BFCacheStatus::BEFOREUNLOAD_LISTENER,
   };
+
+  // A document whose load event hasn't fired usually also has in-flight
+  // requests and other transient blockers, so record it as loading regardless
+  // of the other flags.
+  if (aCombo & mozilla::dom::BFCacheStatus::PAGE_LOADING) {
+    glean::bfcache::combo.EnumGet(glean::bfcache::ComboLabel::ePageLoading)
+        .Add();
+    return;
+  }
 
   // Beforeunload is recorded as a blocker only if it is the only one to block
   // bfcache.
@@ -9422,7 +9433,7 @@ nsIPrincipal* nsDocShell::GetInheritedPrincipal(
 /* static */ bool nsDocShell::CreateAndConfigureRealChannelForLoadState(
     BrowsingContext* aBrowsingContext, nsDocShellLoadState* aLoadState,
     LoadInfo* aLoadInfo, nsIInterfaceRequestor* aCallbacks,
-    nsDocShell* aDocShell, const OriginAttributes& aOriginAttributes,
+    nsDocShell* /*aDocShell*/, const OriginAttributes& aOriginAttributes,
     nsLoadFlags aLoadFlags, uint32_t aCacheKey, nsresult& aRv,
     nsIChannel** aChannel) {
   MOZ_ASSERT(aLoadInfo);
@@ -9836,8 +9847,8 @@ nsresult nsDocShell::PerformTrustedTypesPreNavigationCheck(
   MOZ_ASSERT(aWindow);
   RefPtr<nsIContentSecurityPolicy> csp =
       PolicyContainer::GetCSP(aWindow->GetPolicyContainer());
-  if (csp->GetRequireTrustedTypesForDirectiveState() ==
-      RequireTrustedTypesForDirectiveState::NONE) {
+  if (!csp || csp->GetRequireTrustedTypesForDirectiveState() ==
+                  RequireTrustedTypesForDirectiveState::NONE) {
     return NS_OK;
   }
 
@@ -10557,9 +10568,9 @@ nsresult nsDocShell::CompleteInitialAboutBlankLoad(
   return NS_OK;
 }
 
-static nsresult AppendSegmentToString(nsIInputStream* aIn, void* aClosure,
+static nsresult AppendSegmentToString(nsIInputStream* /*aIn*/, void* aClosure,
                                       const char* aFromRawSegment,
-                                      uint32_t aToOffset, uint32_t aCount,
+                                      uint32_t /*aToOffset*/, uint32_t aCount,
                                       uint32_t* aWriteCount) {
   // aFromSegment now contains aCount bytes of data.
 
@@ -10912,8 +10923,8 @@ nsresult nsDocShell::ScrollToAnchor(bool aCurHasRef, bool aNewHasRef,
 bool nsDocShell::OnNewURI(nsIURI* aURI, nsIChannel* aChannel,
                           nsIPrincipal* aTriggeringPrincipal,
                           nsIPrincipal* aPrincipalToInherit,
-                          nsIPrincipal* aPartitionedPrincipalToInherit,
-                          nsIPolicyContainer* aPolicyContainer,
+                          nsIPrincipal* /*aPartitionedPrincipalToInherit*/,
+                          nsIPolicyContainer* /*aPolicyContainer*/,
                           bool aAddToGlobalHistory, bool aCloneSHChildren) {
   MOZ_ASSERT(aURI, "uri is null");
   MOZ_ASSERT(!aChannel || !aTriggeringPrincipal, "Shouldn't have both set");
@@ -11645,11 +11656,16 @@ nsDocShell::MaybeFireTraversableTraverseHistory(
   if (RefPtr<nsPIDOMWindowInner> activeWindow = GetActiveWindow()) {
     if (RefPtr navigation = activeWindow->Navigation()) {
       if (AutoJSAPI jsapi; jsapi.Init(activeWindow)) {
-        bool shouldContinue = navigation->FireTraverseNavigateEvent(
-            jsapi.cx(), aLoadState, aUserInvolvement);
-
-        if (!shouldContinue) {
-          finalStatus = nsIDocumentViewer::eCanceledByNavigate;
+        switch (navigation->FireTraverseNavigateEvent(jsapi.cx(), aLoadState,
+                                                      aUserInvolvement)) {
+          case Navigation::FinalStatus::Continue:
+            break;
+          case Navigation::FinalStatus::Intercept:
+            finalStatus = nsIDocumentViewer::eInterceptedByNavigate;
+            break;
+          case Navigation::FinalStatus::Prevent:
+            finalStatus = nsIDocumentViewer::eCanceledByNavigate;
+            break;
         }
       }
     }
@@ -11660,7 +11676,7 @@ nsDocShell::MaybeFireTraversableTraverseHistory(
 
 nsresult nsDocShell::LoadHistoryEntry(nsDocShellLoadState* aLoadState,
                                       uint32_t aLoadType,
-                                      bool aLoadingCurrentEntry) {
+                                      bool /*aLoadingCurrentEntry*/) {
   if (!IsNavigationAllowed()) {
     return NS_OK;
   }
@@ -12791,7 +12807,7 @@ nsresult nsDocShell::OnLinkClickSync(nsIContent* aContent,
 }
 
 nsresult nsDocShell::OnOverLink(nsIContent* aContent, nsIURI* aURI,
-                                const nsAString& aTargetSpec) {
+                                const nsAString& /*aTargetSpec*/) {
   if (aContent->IsEditable()) {
     return NS_OK;
   }

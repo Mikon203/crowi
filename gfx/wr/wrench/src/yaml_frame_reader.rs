@@ -13,7 +13,6 @@ use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::usize;
 use webrender::api::*;
 use webrender::render_api::*;
 use webrender::api::units::*;
@@ -600,17 +599,16 @@ impl YamlFrameReader {
                 paired_with_perspective: false,
             };
 
-            let fixed_id = builder.push_reference_frame(
+            let fixed_id = builder.define_reference_frame(
                 LayoutPoint::zero(),
                 SpatialId::root_reference_frame(pipeline_id),
                 TransformStyle::Flat,
                 transform,
                 kind,
             );
-            builder.pop_reference_frame();
             self.dppx_root_reference_frame = Some(fixed_id);
 
-            let ref_frame_id = builder.push_reference_frame(
+            let ref_frame_id = builder.define_reference_frame(
                 LayoutPoint::zero(),
                 *self.spatial_id_stack.last().unwrap(),
                 TransformStyle::Flat,
@@ -634,7 +632,6 @@ impl YamlFrameReader {
 
         if dppx_reference_frame {
             self.spatial_id_stack.pop().unwrap();
-            builder.pop_reference_frame();
         }
 
         let (pipeline, payload) = builder.end();
@@ -2083,7 +2080,7 @@ impl YamlFrameReader {
         }
     }
 
-    fn push_reference_frame(
+    fn define_reference_frame(
         &mut self,
         dl: &mut DisplayListBuilder,
         default_bounds: impl Fn() -> LayoutRect,
@@ -2152,7 +2149,7 @@ impl YamlFrameReader {
             None => PropertyBinding::Value(transform_value),
         };
 
-        let reference_frame_id = dl.push_reference_frame(
+        let reference_frame_id = dl.define_reference_frame(
             bounds.min,
             *self.spatial_id_stack.last().unwrap(),
             transform_style,
@@ -2175,7 +2172,7 @@ impl YamlFrameReader {
         yaml: &Yaml,
     ) {
         let default_bounds = || LayoutRect::from_size(wrench.window_size_f32());
-        let real_id = self.push_reference_frame(dl, default_bounds, yaml);
+        let real_id = self.define_reference_frame(dl, default_bounds, yaml);
         self.spatial_id_stack.push(real_id);
 
         if let Some(yaml_items) = yaml["items"].as_vec() {
@@ -2183,10 +2180,9 @@ impl YamlFrameReader {
         }
 
         self.spatial_id_stack.pop().unwrap();
-        dl.pop_reference_frame();
     }
 
-    fn push_computed_frame(
+    fn define_computed_frame(
         &mut self,
         dl: &mut DisplayListBuilder,
         default_bounds: impl Fn() -> LayoutRect,
@@ -2198,7 +2194,7 @@ impl YamlFrameReader {
         let vertical_flip = yaml["vertical-flip"].as_bool().unwrap_or(false);
         let rotation = yaml["rotation"].as_rotation().unwrap_or(Rotation::Degree0);
 
-        let reference_frame_id = dl.push_computed_frame(
+        let reference_frame_id = dl.define_computed_frame(
             bounds.min,
             *self.spatial_id_stack.last().unwrap(),
             scale_from,
@@ -2221,7 +2217,7 @@ impl YamlFrameReader {
         yaml: &Yaml,
     ) {
         let default_bounds = || LayoutRect::from_size(wrench.window_size_f32());
-        let real_id = self.push_computed_frame(dl, default_bounds, yaml);
+        let real_id = self.define_computed_frame(dl, default_bounds, yaml);
         self.spatial_id_stack.push(real_id);
 
         if let Some(yaml_items) = yaml["items"].as_vec() {
@@ -2229,7 +2225,6 @@ impl YamlFrameReader {
         }
 
         self.spatial_id_stack.pop().unwrap();
-        dl.pop_reference_frame();
     }
 
     fn add_stacking_context_from_yaml(
@@ -2250,10 +2245,10 @@ impl YamlFrameReader {
         let has_transform = !yaml["transform"].is_badvalue() || !yaml["perspective"].is_badvalue();
         let pushed_reference_frame = if has_transform || bounds.min != LayoutPoint::zero() {
             let reference_frame_id = if has_transform {
-                self.push_reference_frame(dl, default_bounds, yaml)
+                self.define_reference_frame(dl, default_bounds, yaml)
             } else {
                 let parent_spatial_id = *self.spatial_id_stack.last().unwrap();
-                dl.push_reference_frame(
+                dl.define_reference_frame(
                     bounds.min,
                     parent_spatial_id,
                     transform_style,
@@ -2353,7 +2348,6 @@ impl YamlFrameReader {
 
         if pushed_reference_frame {
             self.spatial_id_stack.pop().unwrap();
-            dl.pop_reference_frame();
         }
     }
 

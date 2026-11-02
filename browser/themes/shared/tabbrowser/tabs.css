@@ -58,6 +58,9 @@
   --tab-collapsed-background-width: var(--tab-min-height);
   --tab-collapsed-width: calc(var(--tab-collapsed-background-width) + 2 * var(--tab-margin-inline-inner));
   --tab-collapsed-split-pill-offset: 0px;
+  /* Added to the inline-end side of the launcher, so a classic scrollbar fits
+   * next to the tab backgrounds. */
+  --tab-collapsed-scrollbar-extra: 0px;
   --tab-pinned-min-width-expanded: calc(var(--tab-background-width-pinned-expanded) + 2 * var(--tab-margin-inline-pinned-expanded));
   --tab-note-icon-end-margin: 4px;
   --tab-selected-color-scheme: var(--toolbar-color-scheme);
@@ -166,11 +169,16 @@
     /* 32px tab background + 2 * 9px. */
     &:not([uidensity="touch"]) {
       --tab-margin-inline-inner: 9px;
+
+      @media -moz-pref("sidebar.verticalTabs") and (not (-moz-overlay-scrollbars)) {
+        --tab-collapsed-scrollbar-extra: 2px;
+      }
     }
 
     /* 28px tab background + 2 * 11px. */
     &[uidensity="compact"] {
       --tab-margin-inline-inner: 11px;
+      --tab-collapsed-scrollbar-extra: 0px;
     }
   }
 }
@@ -2965,6 +2973,10 @@ tab-group {
     margin-inline: var(--tab-margin-inline-inner);
   }
 
+  &:not([expanded])::after {
+    margin-inline-end: calc(var(--tab-margin-inline-inner) + var(--tab-collapsed-scrollbar-extra));
+  }
+
   &:not([overflow])::after {
     border-color: transparent;
   }
@@ -3276,11 +3288,8 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   }
 }
 
-#allTabsMenu-groupsView {
-  &:empty,
-  &:empty + #allTabsMenu-groupsSeparator {
-    display: none;
-  }
+#allTabsMenu-groupsView:empty + #allTabsMenu-groupsSeparator {
+  display: none;
 }
 
 .all-tabs-item {

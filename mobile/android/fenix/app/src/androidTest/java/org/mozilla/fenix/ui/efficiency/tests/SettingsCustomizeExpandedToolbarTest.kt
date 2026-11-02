@@ -26,6 +26,7 @@ import org.mozilla.fenix.ui.efficiency.selectors.MainMenuSelectors
 import org.mozilla.fenix.ui.efficiency.selectors.SearchBarSelectors
 import org.mozilla.fenix.ui.efficiency.selectors.SettingsCustomizeSelectors
 import org.mozilla.fenix.ui.efficiency.selectors.ShareOverlaySelectors
+import org.mozilla.fenix.ui.efficiency.selectors.TabDrawerSelectors
 import org.mozilla.fenix.ui.efficiency.selectors.ToolbarSelectors
 
 class SettingsCustomizeExpandedToolbarTest : BaseTest(LaunchConfig(shouldUseExpandedToolbar = true)) {
@@ -413,5 +414,60 @@ class SettingsCustomizeExpandedToolbarTest : BaseTest(LaunchConfig(shouldUseExpa
             .mozVerify(ToolbarSelectors.NEW_TAB_BUTTON)
             .mozVerify(ToolbarSelectors.TAB_COUNTER_ANY_LAYOUT)
             .mozVerify(ToolbarSelectors.MAIN_MENU_BUTTON)
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3333225
+    @Critical
+    @Test
+    fun swipeToSwitchExpandedToolbarTabsTest() {
+        val firstWebPage = mockWebServer.getGenericAsset(1)
+        val secondWebPage = mockWebServer.getGenericAsset(2)
+
+        // Disable the edge back-gesture so it doesn't intercept the horizontal swipes on the toolbar.
+        enableOrDisableBackGestureNavigationOnDevice(backGestureNavigationEnabled = false)
+
+        on.browserPage.navigateToPage(firstWebPage.url.toString())
+        on.tabDrawer.navigateToPage().mozClick(TabDrawerSelectors.FAB)
+        on.searchBar
+            .mozEnterText(secondWebPage.url.toString(), SearchBarSelectors.TOOLBAR_IN_EDIT_MODE)
+            .mozPressEnter(SearchBarSelectors.TOOLBAR_IN_EDIT_MODE)
+        on.browserPage.navigateToPage()
+
+        // A fast flick (low step count) on the navigation toolbar switches to the adjacent tab; a slow
+        // drag doesn't register as a tab-switch gesture.
+        on.browserPage.mozSwipeElement(ToolbarSelectors.TOOLBAR, SwipeDirection.RIGHT, steps = 2)
+        on.browserPage.verifyUrl(firstWebPage.url.toString())
+        on.browserPage.mozSwipeElement(ToolbarSelectors.TOOLBAR, SwipeDirection.LEFT, steps = 2)
+        on.browserPage.verifyUrl(secondWebPage.url.toString())
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3333176
+    @Critical
+    @Test
+    fun verifyTheExpandedToolbarNavigationThroughThePagesInTheSameTabTest() {
+        val firstWebPage = mockWebServer.getGenericAsset(4)
+        val secondWebPage = mockWebServer.getGenericAsset(1)
+
+        @Suppress("UNCHECKED_CAST")
+        val orientationRule = composeRule as AndroidComposeTestRule<HomeActivityIntentTestRule, HomeActivity>
+
+        on.browserPage
+            .navigateToPage(firstWebPage.url.toString())
+            .clickPageContent("Link 1")
+            .verifyPageContent(secondWebPage.content)
+
+        // Each back/forward loads a page, and GeckoView's orientation delegate (ScreenOrientationFeature) resets
+        // requestedOrientation to UNSPECIFIED on every navigation - which falls back to portrait here. So landscape
+        // has to be re-applied after each navigation rather than set once.
+        setScreenOrientation(orientationRule, ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+
+        on.toolbar.mozClick(ToolbarSelectors.EXPANDED_TOOLBAR_BACK_BUTTON)
+        on.browserPage.verifyPageContent(firstWebPage.content)
+
+        setScreenOrientation(orientationRule, ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+        on.toolbar.mozClick(ToolbarSelectors.EXPANDED_TOOLBAR_FORWARD_BUTTON)
+        on.browserPage.verifyPageContent(secondWebPage.content)
+
+        setScreenOrientation(orientationRule, ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
     }
 }

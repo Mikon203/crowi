@@ -889,21 +889,6 @@ def target_tasks_custom_car_perf_testing(full_task_graph, parameters, graph_conf
             if "browsertime" in try_name and "cstm-car-m" in try_name:
                 if "hw-s24" in platform and "speedometer3" not in try_name:
                     return False
-                if "jetstream3" in try_name:
-                    return True
-                # Bug 1898514 - Avoid tp6m or non-essential tp6 jobs in cron on non-a55 platform
-                # Bug 1961831 - Disable pageload tests temporarily during provider switch
-                if "tp6m" in try_name:
-                    return False
-                # Bug 1945165 - Disable ebay-kleinanzeigen on cstm-car-m because of permafail
-                if (
-                    "ebay-kleinanzeigen" in try_name
-                    and "ebay-kleinanzeigen-search" not in try_name
-                ):
-                    return False
-                # Bug 1960921 Disable ebay-kleinanzeigen-search on custom-car
-                if "ebay-kleinanzeigen-search" in try_name:
-                    return False
                 return True
         return False
 
@@ -986,17 +971,6 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
         # Android selection
         elif accept_raptor_android_build(platform):
             if "hw-s24" in platform and "speedometer3" not in try_name:
-                return False
-            # Bug 1929960 - Enable all chrome-m tp6m tests on a55 only
-            if "chrome-m" in try_name and "tp6m" in try_name and "hw-a55" in platform:
-                # Bug 1954923 - Disable ebay-kleinanzeigen
-                if "ebay-kleinanzeigen" in try_name and "search" not in try_name:
-                    return False
-                return True
-            if "chrome-m" in try_name and (
-                ("ebay" in try_name and "live" not in try_name)
-                or ("live" in try_name and "dailymail" in try_name)
-            ):
                 return False
             # Ignore all fennec tests here, we run those weekly
             if "fennec" in try_name:
@@ -1918,7 +1892,9 @@ def target_tasks_snap_upstream_tasks(full_task_graph, parameters, graph_config):
 def target_tasks_nightly_android(full_task_graph, parameters, graph_config):
     def filter(task, parameters):
         # geckoview
-        if task.attributes.get("shipping_product") == "fennec" and task.kind in (
+        if task.attributes.get(
+            "shipping_product"
+        ) == "firefox-android" and task.kind in (
             "beetmover-geckoview",
             "upload-symbols",
         ):

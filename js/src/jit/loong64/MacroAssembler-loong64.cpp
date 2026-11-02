@@ -5847,16 +5847,16 @@ void MacroAssemblerLOONG64Compat::loadPrivate(const Address& address,
   loadPtr(address, dest);
 }
 
-void MacroAssemblerLOONG64Compat::store8(Imm32 imm, const Address& address) {
+FaultingCodeRange MacroAssemblerLOONG64Compat::store8(Imm32 imm,
+                                                      const Address& address) {
   if (imm.value == 0) {
-    ma_store(zero, address, SizeByte);
-    return;
+    return ma_store(zero, address, SizeByte);
   }
 
   UseScratchRegisterScope temps(asMasm());
   Register scratch = temps.Acquire();
   ma_li(scratch, imm);
-  ma_store(scratch, address, SizeByte);
+  return ma_store(scratch, address, SizeByte);
 }
 
 FaultingCodeRange MacroAssemblerLOONG64Compat::store8(Register src,
@@ -5873,16 +5873,16 @@ FaultingCodeRange MacroAssemblerLOONG64Compat::store8(Register src,
   return ma_store(src, dest, SizeByte);
 }
 
-void MacroAssemblerLOONG64Compat::store16(Imm32 imm, const Address& address) {
+FaultingCodeRange MacroAssemblerLOONG64Compat::store16(Imm32 imm,
+                                                       const Address& address) {
   if (imm.value == 0) {
-    ma_store(zero, address, SizeHalfWord);
-    return;
+    return ma_store(zero, address, SizeHalfWord);
   }
 
   UseScratchRegisterScope temps(asMasm());
   Register scratch = temps.Acquire();
   ma_li(scratch, imm);
-  ma_store(scratch, address, SizeHalfWord);
+  return ma_store(scratch, address, SizeHalfWord);
 }
 
 FaultingCodeRange MacroAssemblerLOONG64Compat::store16(Register src,
@@ -5912,16 +5912,16 @@ FaultingCodeRange MacroAssemblerLOONG64Compat::store32(Register src,
   return ma_store(src, address, SizeWord);
 }
 
-void MacroAssemblerLOONG64Compat::store32(Imm32 src, const Address& address) {
+FaultingCodeRange MacroAssemblerLOONG64Compat::store32(Imm32 src,
+                                                       const Address& address) {
   if (src.value == 0) {
-    ma_store(zero, address, SizeWord);
-    return;
+    return ma_store(zero, address, SizeWord);
   }
 
   UseScratchRegisterScope temps(asMasm());
   Register scratch = temps.Acquire();
   move32(src, scratch);
-  ma_store(scratch, address, SizeWord);
+  return ma_store(scratch, address, SizeWord);
 }
 
 void MacroAssemblerLOONG64Compat::store32(Imm32 imm, const BaseIndex& dest) {
@@ -5997,8 +5997,8 @@ void MacroAssemblerLOONG64Compat::testNullSet(Condition cond,
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
   UseScratchRegisterScope temps(asMasm());
   Register scratch = temps.Acquire();
-  splitTag(value, scratch);
-  ma_cmp_set(dest, scratch, ImmTag(JSVAL_TAG_NULL), cond);
+  splitSignExtTag(value, scratch);
+  ma_cmp_set(dest, scratch, ImmTagSignExt(JSVAL_TAG_NULL), cond);
 }
 
 void MacroAssemblerLOONG64Compat::testObjectSet(Condition cond,
@@ -6007,8 +6007,8 @@ void MacroAssemblerLOONG64Compat::testObjectSet(Condition cond,
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
   UseScratchRegisterScope temps(asMasm());
   Register scratch = temps.Acquire();
-  splitTag(value, scratch);
-  ma_cmp_set(dest, scratch, ImmTag(JSVAL_TAG_OBJECT), cond);
+  splitSignExtTag(value, scratch);
+  ma_cmp_set(dest, scratch, ImmTagSignExt(JSVAL_TAG_OBJECT), cond);
 }
 
 void MacroAssemblerLOONG64Compat::testUndefinedSet(Condition cond,
@@ -6017,8 +6017,8 @@ void MacroAssemblerLOONG64Compat::testUndefinedSet(Condition cond,
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
   UseScratchRegisterScope temps(asMasm());
   Register scratch = temps.Acquire();
-  splitTag(value, scratch);
-  ma_cmp_set(dest, scratch, ImmTag(JSVAL_TAG_UNDEFINED), cond);
+  splitSignExtTag(value, scratch);
+  ma_cmp_set(dest, scratch, ImmTagSignExt(JSVAL_TAG_UNDEFINED), cond);
 }
 
 void MacroAssemblerLOONG64Compat::unboxInt32(const ValueOperand& operand,
@@ -6341,7 +6341,7 @@ Register MacroAssemblerLOONG64Compat::extractObject(const Address& address,
 Register MacroAssemblerLOONG64Compat::extractTag(const Address& address,
                                                  Register scratch) {
   loadPtr(address, scratch);
-  as_bstrpick_d(scratch, scratch, 63, JSVAL_TAG_SHIFT);
+  splitSignExtTag(scratch, scratch);
   return scratch;
 }
 

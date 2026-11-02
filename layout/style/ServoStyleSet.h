@@ -429,7 +429,7 @@ class ServoStyleSet {
     // mutex is locked.  If we need to use them in other situations during
     // a traversal, we should assert that we've taken appropriate
     // synchronization measures.
-    AssertIsMainThreadOrServoFontMetricsLocked();
+    AssertIsMainThreadOrServoFFILocked();
 
     mPostTraversalTasks.AppendElement(std::move(aTask));
   }

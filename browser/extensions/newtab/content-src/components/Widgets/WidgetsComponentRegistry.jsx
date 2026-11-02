@@ -57,4 +57,5 @@ export const WIDGET_ROW_COMPONENTS = {
 
 export const WIDGET_SIDEBAR_COMPONENTS = {
   weather: WeatherSidebarWidget,
+  privacy: Privacy,
 };

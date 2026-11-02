@@ -1351,6 +1351,8 @@ class PresShell final : public nsStubDocumentObserver,
   NS_IMETHOD GetSelectionFromScript(RawSelectionType aRawSelectionType,
                                     dom::Selection** aSelection) override;
   dom::Selection* GetSelection(RawSelectionType aRawSelectionType) override;
+  dom::Selection* GetExistingSelection(
+      RawSelectionType aRawSelectionType) override;
 
   NS_IMETHOD SetDisplaySelection(int16_t aToggle) override;
   NS_IMETHOD GetDisplaySelection(int16_t* aToggle) override;

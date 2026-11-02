@@ -111,6 +111,8 @@
     <string name="preferences_debug_settings_show_more_shortcuts" translatable="false">Show More Shortcuts</string>
     <!-- Label for enabling Homepage Weather Widget -->
     <string name="preferences_debug_settings_homepage_weather_widget" translatable="false">Enable Homepage Weather Widget</string>
+    <!-- Label for enabling Homepage Wrexham Widget -->
+    <string name="preferences_debug_settings_homepage_wrexham_widget" translatable="false">Enable Homepage Wrexham Widget</string>
     <!-- Label for enabling Mozilla Ads Client for Sponsored Stories -->
     <string name="preferences_debug_settings_ads_client_for_stories" translatable="false">Enable Ads Client for Stories</string>
     <!-- Label for enabling the custom tab extension -->
@@ -123,8 +125,6 @@
     <string name="preferences_debug_settings_use_scroll_data_for_dynamic_toolbar" translatable="false">Animate dynamic toolbars based on website scroll data</string>
     <!-- Label for the option to show the toolbar in focus mode when clicked -->
     <string name="preferences_debug_settings_show_toolbar_in_focus_mode" translatable="false">Enable focus mode</string>
-    <!-- Label for the option to enable browser menu customization -->
-    <string name="preferences_debug_settings_enable_menu_customization" translatable="false">Enable menu customization</string>
     <!-- Label for the option to enable browser menu customization screen -->
     <string name="preferences_debug_settings_enable_menu_customization_screen" translatable="false">Enable menu customization screen</string>
     <!-- Label for toggling Remote Crash Pull -->
@@ -236,6 +236,8 @@
 
     <!-- Label for using the open links in YouTube app preference in secret settings. -->
     <string name="preferences_debug_settings_open_links_in_youtube" translatable="false">Open links in YouTube app preference</string>
+
+    <string name="preferences_debug_settings_enable_qwac_ui" translatable="false">Enable QWAC UI</string>
 
   <!-- Label for the defaults section and reset action in secret settings. -->
     <string name="preferences_debug_settings_reset_defaults" translatable="false">Reset switches to defaults</string>
@@ -454,6 +456,8 @@
 
     <!-- Label for the Customize Home preference to show the weather widget on the homepage. -->
     <string name="customize_toggle_weather" translatable="false">Weather</string>
+    <!-- Label for the Customize Home preference to show the Wrexham widget on the homepage. -->
+    <string name="customize_toggle_wrexham_widget" translatable="false">Wrexham Widget</string>
 
     <!--  Firefox brand name  -->
     <string name="app_name_firefox" tools:ignore="BrandUsage">Firefox</string>

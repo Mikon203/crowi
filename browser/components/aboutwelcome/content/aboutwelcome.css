@@ -2396,10 +2396,39 @@ html {
   border-end-end-radius: 0;
   overflow: hidden;
 }
+.onboardingContainer .screen[pos=card-stack] .section-secondary.card-stack-image-float {
+  background: var(--card-stack-bkg);
+}
+.onboardingContainer .screen[pos=card-stack] .section-secondary.card-stack-image-bleed {
+  background: var(--card-stack-bkg);
+}
+@container card-stack (width <= 640px) {
+  .onboardingContainer .screen[pos=card-stack] .section-secondary.card-stack-image-bleed {
+    background: var(--card-stack-bkg-uncropped);
+  }
+}
+.onboardingContainer .screen[pos=card-stack] .section-secondary.card-stack-image-banner {
+  background: var(--card-stack-bkg);
+}
+@container card-stack (width <= 640px) {
+  .onboardingContainer .screen[pos=card-stack] .section-secondary.card-stack-image-banner {
+    background: var(--card-stack-bkg-medium);
+  }
+}
+@container card-stack (width <= 520px) {
+  .onboardingContainer .screen[pos=card-stack] .section-secondary.card-stack-image-banner {
+    background: var(--card-stack-bkg-small);
+  }
+}
 @container card-stack (width <= 640px) {
   .onboardingContainer .screen[pos=card-stack] .section-secondary {
     width: 180px;
     margin-inline-start: 12px;
+  }
+  .onboardingContainer .screen[pos=card-stack] .section-secondary.card-stack-image-banner {
+    width: 192px;
+    margin-inline-start: auto;
+    background-position-y: bottom;
   }
 }
 @container card-stack (width <= 520px) {

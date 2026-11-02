@@ -17,6 +17,7 @@
         "no-no-rosegment.patch",
         "sanitizer_deadlock_suppression_clang_22.patch",
         "compiler-rt-rss-limit-heap-profile.patch",
-        "llvm-objcopy-macho-dyld-environment.patch"
+        "llvm-objcopy-macho-dyld-environment.patch",
+        "bolt-no-use-gnu-stack.patch"
     ]
 }

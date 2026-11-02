@@ -392,6 +392,10 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   }
   template <typename T>
   void storeValue(const Value& val, const T& dest) {
+    if (!val.isGCThing() && val.asRawBits() == 0) {
+      storePtr(ImmWord(0), dest);
+      return;
+    }
     vixl::UseScratchRegisterScope temps(this);
     const Register scratch = temps.AcquireX().asUnsized();
     moveValue(val, ValueOperand(scratch));
@@ -902,16 +906,15 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   FaultingCodeRange store8(Register src, const Address& address) {
     return Strb(ARMRegister(src, 32), toMemOperand(address));
   }
-  void store8(Imm32 imm, const Address& address) {
+  FaultingCodeRange store8(Imm32 imm, const Address& address) {
     if (imm.value == 0) {
-      Strb(vixl::wzr, toMemOperand(address));
-      return;
+      return Strb(vixl::wzr, toMemOperand(address));
     }
     vixl::UseScratchRegisterScope temps(this);
     const ARMRegister scratch32 = temps.AcquireW();
     MOZ_ASSERT(scratch32.asUnsized() != address.base);
     move32(imm, scratch32.asUnsized());
-    Strb(scratch32, toMemOperand(address));
+    return Strb(scratch32, toMemOperand(address));
   }
   FaultingCodeRange store8(Register src, const BaseIndex& address) {
     return doBaseIndex(ARMRegister(src, 32), address, vixl::STRB_w);
@@ -932,16 +935,15 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   FaultingCodeRange store16(Register src, const Address& address) {
     return Strh(ARMRegister(src, 32), toMemOperand(address));
   }
-  void store16(Imm32 imm, const Address& address) {
+  FaultingCodeRange store16(Imm32 imm, const Address& address) {
     if (imm.value == 0) {
-      Strh(vixl::wzr, toMemOperand(address));
-      return;
+      return Strh(vixl::wzr, toMemOperand(address));
     }
     vixl::UseScratchRegisterScope temps(this);
     const ARMRegister scratch32 = temps.AcquireW();
     MOZ_ASSERT(scratch32.asUnsized() != address.base);
     move32(imm, scratch32.asUnsized());
-    Strh(scratch32, toMemOperand(address));
+    return Strh(scratch32, toMemOperand(address));
   }
   FaultingCodeRange store16(Register src, const BaseIndex& address) {
     return doBaseIndex(ARMRegister(src, 32), address, vixl::STRH_w);
@@ -1031,16 +1033,15 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Mov(scratch64, uint64_t(address.addr));
     Str(ARMRegister(src, 32), MemOperand(scratch64));
   }
-  void store32(Imm32 imm, const Address& address) {
+  FaultingCodeRange store32(Imm32 imm, const Address& address) {
     if (imm.value == 0) {
-      Str(vixl::wzr, toMemOperand(address));
-      return;
+      return Str(vixl::wzr, toMemOperand(address));
     }
     vixl::UseScratchRegisterScope temps(this);
     const ARMRegister scratch32 = temps.AcquireW();
     MOZ_ASSERT(scratch32.asUnsized() != address.base);
     Mov(scratch32, uint64_t(imm.value));
-    Str(scratch32, toMemOperand(address));
+    return Str(scratch32, toMemOperand(address));
   }
   FaultingCodeRange store32(Register r, const Address& address) {
     return Str(ARMRegister(r, 32), toMemOperand(address));
@@ -1078,8 +1079,8 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     storePtr(ImmWord(imm.value), address);
   }
 
-  void store64(Imm64 imm, const Address& address) {
-    storePtr(ImmWord(imm.value), address);
+  FaultingCodeRange store64(Imm64 imm, const Address& address) {
+    return storePtr(ImmWord(imm.value), address);
   }
 
   template <typename S, typename T>
@@ -1679,14 +1680,18 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     // inequalities should use unsigned comparisons (as done by default) in
     // order to keep the same relation order after the sign extension, i.e.
     // using Above or Below which are based on the carry flag.
+    int32_t negTag = negatedSignExtTag(ref);
+    // Check that negTag is encoded as a 12 bits immediate value.
+    MOZ_ASSERT((negTag & ~0xFFF) == 0);
+    cmn32(tag, Imm32(negTag));
+  }
+
+  static int32_t negatedSignExtTag(ImmTag ref) {
     uint32_t hiShift = JSVAL_TAG_SHIFT - 32;
     int32_t seTag = int32_t(ref.value);
     seTag = (seTag << hiShift) >> hiShift;
     MOZ_ASSERT(seTag < 0);
-    int32_t negTag = -seTag;
-    // Check thest negTag is encoded on a 12 bits immediate value.
-    MOZ_ASSERT((negTag & ~0xFFF) == 0);
-    cmn32(tag, Imm32(negTag));
+    return -seTag;
   }
 
   // The upper 32 bits of a Value are its tag shifted left by 15. For a type
@@ -1780,6 +1785,15 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   }
   Condition testError(Condition cond, Register tag) {
     return testMagic(cond, tag);
+  }
+  Condition testNullOrUndefined(Condition cond, Register tag) {
+    MOZ_ASSERT(cond == Equal || cond == NotEqual);
+    cmpTag(tag, ImmTag(JSVAL_TAG_NULL));
+    // Compare with the undefined tag unless null matched, keeping Z set then.
+    int32_t negUndefined = negatedSignExtTag(ImmTag(JSVAL_TAG_UNDEFINED));
+    MOZ_ASSERT(vixl::Assembler::IsImmConditionalCompare(negUndefined));
+    Ccmn(ARMRegister(tag, 32), Operand(negUndefined), vixl::ZFlag, NotEqual);
+    return cond;
   }
 
   // ValueOperand-based tests.
@@ -1878,6 +1892,23 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   }
   Condition testError(Condition cond, const ValueOperand& value) {
     return testMagic(cond, value);
+  }
+  Condition testNullOrUndefined(Condition cond, const ValueOperand& value) {
+    MOZ_ASSERT(cond == Equal || cond == NotEqual);
+    vixl::UseScratchRegisterScope temps(this);
+    const ARMRegister scratch64 = temps.AcquireX();
+    MOZ_ASSERT(scratch64.asUnsized() != value.valueReg());
+    // The bits that null and undefined share sign-extend to a negative
+    // constant that compares with CMN like a sign-extended tag.
+    constexpr unsigned shift = JS::detail::ValueNullOrUndefinedShift;
+    constexpr uint32_t bits = JS::detail::ValueNullOrUndefinedBits;
+    static_assert(bits >> (64 - shift - 1) == 1,
+                  "the shared bits must sign-extend to a negative value");
+    constexpr int32_t negBits = int32_t((uint32_t(1) << (64 - shift)) - bits);
+    MOZ_ASSERT(vixl::Assembler::IsImmAddSub(negBits));
+    Asr(scratch64, ARMRegister(value.valueReg(), 64), shift);
+    Cmn(scratch64.W(), Operand(negBits));
+    return cond;
   }
 
   // Address-based tests. Types with a 32-bit payload and the range tests

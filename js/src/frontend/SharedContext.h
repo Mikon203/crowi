@@ -313,6 +313,7 @@ enum class HasHeritage { No, Yes };
 struct InlinedField {
   TaggedParserAtomIndex name;
   bool isPrivate;
+  double initialValue;
 };
 
 class SuspendableContext : public SharedContext {

@@ -437,6 +437,19 @@ export class RustAutofillCreditCardsAdapter extends RustAutofillAdapterBase {
   }
 
   /**
+   * Reads no encrypted field, so it never needs the key or prompts.
+   *
+   * @returns {Promise<{total: number, withSecurityCode: number}>}
+   */
+  async getSavedCounts() {
+    const cards = await (await this._store()).listCreditCardCandidates();
+    return {
+      total: cards.length,
+      withSecurityCode: cards.filter(card => card.hasCvv).length,
+    };
+  }
+
+  /**
    * The stored cards holding the number this record carries.
    *
    * The counterpart of CreditCardsBase.getDuplicateRecords, comparing what it

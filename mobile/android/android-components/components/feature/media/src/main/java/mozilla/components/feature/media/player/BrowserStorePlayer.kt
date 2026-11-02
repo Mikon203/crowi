@@ -78,6 +78,9 @@ internal class BrowserStorePlayer(
     private var lastTitle: String? = null
     private var stalePositionState: MozMediaSession.PositionState? = null
 
+    private var positionKey: PositionKey? = null
+    private var positionSupplier: PositionSupplier = PositionSupplier.ZERO
+
     // `scope` starts the store-observing coroutine as part of its initializer; the looper
     // check must run first. Keep this `init` block above the declaration of `scope`.
     init {
@@ -127,19 +130,34 @@ internal class BrowserStorePlayer(
 
         if (tab != null) {
             val speed = positionState?.playbackRate?.toFloat()?.takeIf { it > 0f && it.isFinite() } ?: 1f
-            val positionMs =
-                if (stalePositionState != null) {
-                    0L
-                } else {
-                    ((positionState?.position?.takeIf { it >= 0 && it.isFinite() } ?: 0.0) * C.MILLIS_PER_SECOND)
-                        .toLong()
-                }
             builder
                 .setPlaylist(listOf(buildMediaItemData(tab)))
-                .setContentPositionMs(positionMs)
+                .setContentPositionMs(positionSupplierFor(tab, positionState, if (playWhenReady) speed else 0f))
                 .setPlaybackParameters(PlaybackParameters(speed))
+        } else {
+            positionKey = null
         }
         return builder.build()
+    }
+
+    private fun positionSupplierFor(
+        tab: SessionState,
+        positionState: MozMediaSession.PositionState?,
+        rate: Float,
+    ): PositionSupplier {
+        val positionMs =
+            if (stalePositionState != null) {
+                0L
+            } else {
+                ((positionState?.position?.takeIf { it >= 0 && it.isFinite() } ?: 0.0) * C.MILLIS_PER_SECOND).toLong()
+            }
+        val key = PositionKey(tab.id, tab.mediaSessionState?.metadata?.title, positionState, positionMs, rate)
+        if (key != positionKey) {
+            val start = if (positionKey?.copy(rate = rate) == key) positionSupplier.get() else positionMs
+            positionKey = key
+            positionSupplier = PositionSupplier.getExtrapolating(start, rate)
+        }
+        return positionSupplier
     }
 
     override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
@@ -165,6 +183,7 @@ internal class BrowserStorePlayer(
             Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM ->
                 if (positionMs != C.TIME_UNSET) {
                     controller.seekTo(positionMs / C.MILLIS_PER_SECOND.toDouble(), fast = false)
+                    positionSupplier = PositionSupplier.getExtrapolating(positionMs, positionKey?.rate ?: 0f)
                 }
             else -> Unit
         }
@@ -266,6 +285,14 @@ internal class BrowserStorePlayer(
         }
     }
 }
+
+private data class PositionKey(
+    val tabId: String,
+    val title: String?,
+    val positionState: MozMediaSession.PositionState?,
+    val positionMs: Long,
+    val rate: Float,
+)
 
 private fun MediaSessionState.durationSeconds(): Double? =
     positionState.duration.takeIf { it > 0 && it.isFinite() }

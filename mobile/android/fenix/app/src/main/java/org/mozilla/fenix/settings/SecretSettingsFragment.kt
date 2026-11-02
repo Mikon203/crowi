@@ -215,6 +215,11 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_homepage_wrexham_widget).apply {
+            isChecked = settings.enableHomepageWrexhamWidget
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_ads_client_for_stories).apply {
             isChecked = settings.enableAdsClientForStories
             onPreferenceChangeListener = SharedPreferenceUpdater()
@@ -501,6 +506,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_qwac_ui).apply {
+            isVisible = Config.channel.isNightlyOrDebug
+            isChecked = settings.isQwacUiEnabled
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         // These two are mutually exclusive, which the Settings setters enforce, so they write through Settings
         // rather than SharedPreferenceUpdater and refresh each other to reflect the setter's side effect.
         val powerSavingModeAutoPreference =
@@ -609,38 +620,10 @@ class SecretSettingsFragment : PreferenceFragmentCompat(), SystemInsetsPaddedFra
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
-        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_menu_customization).apply {
-            isVisible = Config.channel.isNightlyOrDebug
-            isChecked = context.components.settings.isMenuCustomizationEnabled
-            onPreferenceChangeListener =
-                object : SharedPreferenceUpdater() {
-                    override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
-                        val enabled = newValue as? Boolean ?: false
-                        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_menu_customization_screen)
-                            .apply {
-                                if (!enabled) {
-                                    isChecked = false
-                                    context.components.settings.isMenuCustomizationScreenEnabled = false
-                                }
-                                isVisible = enabled
-                            }
-                        return super.onPreferenceChange(preference, newValue)
-                    }
-                }
-        }
-
         requirePreference<SwitchPreferenceCompat>(R.string.pref_key_enable_menu_customization_screen).apply {
-            isVisible = Config.channel.isDebug && context.components.settings.isMenuCustomizationEnabled
+            isVisible = Config.channel.isDebug
             isChecked = context.components.settings.isMenuCustomizationScreenEnabled
-            onPreferenceChangeListener =
-                object : SharedPreferenceUpdater() {
-                    override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
-                        if (!context.components.settings.isMenuCustomizationEnabled) {
-                            return false
-                        }
-                        return super.onPreferenceChange(preference, newValue)
-                    }
-                }
+            onPreferenceChangeListener = SharedPreferenceUpdater()
         }
     }
 

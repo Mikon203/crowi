@@ -100,11 +100,13 @@
 
 #include "builtin/Number.h"
 #include "gc/GCEnum.h"
+#include "js/AllocPolicy.h"
 #include "js/BigInt.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/Printer.h"               // js::GenericPrinter
 #include "js/StableStringChars.h"
 #include "js/Utility.h"
+#include "js/Vector.h"
 #include "util/DifferentialTesting.h"
 #include "vm/JSONPrinter.h"  // js::JSONPrinter
 #include "vm/StaticStrings.h"
@@ -324,6 +326,22 @@ inline BigInt::Digit BigInt::digitMul(Digit a, Digit b, Digit* high) {
 
   *high = (rMid1 >> HalfDigitBits) + (rMid2 >> HalfDigitBits) + rHigh + carry;
 
+  return low;
+#endif
+}
+
+inline BigInt::Digit BigInt::digitMulAdd(Digit a, Digit b, Digit c, Digit d,
+                                         Digit* high) {
+  // The result can't overflow: (B - 1)^2 + 2 * (B - 1) = B^2 - 1.
+#if defined(HAVE_TWO_DIGIT)
+  TwoDigit result = static_cast<TwoDigit>(a) * b + c + d;
+  *high = result >> DigitBits;
+  return static_cast<Digit>(result);
+#else
+  Digit carry;
+  Digit low = digitMul(a, b, high);
+  low = digitAdd3(low, c, d, &carry);
+  *high += carry;
   return low;
 #endif
 }
@@ -872,28 +890,15 @@ BigInt::Digit BigInt::digitDivByMultiplication(Digit high, Digit low,
   return q1;
 }
 
-void BigInt::multiplyAccumulateDigits(ConstDigits multiplicand,
-                                      Digit multiplier, Digits acc) {
-  if (!multiplier) {
-    return;
-  }
+void BigInt::multiplyDigits(ConstDigits multiplicand, Digit multiplier,
+                            Digits product) {
+  MOZ_RELEASE_ASSERT(product.size() == multiplicand.size() + 1);
 
-  size_t n = std::min(multiplicand.size(), acc.size());
   Digit carry = 0;
-  Digit high = 0;
-  size_t i = 0;
-  for (; i < n; i++) {
-    Digit sum = digitAdd3(acc[i], high, carry, &carry);
-    Digit low = digitMul(multiplier, multiplicand[i], &high);
-    Digit lowCarry;
-    acc[i] = digitAdd(sum, low, &lowCarry);
-    carry += lowCarry;
+  for (size_t i = 0; i < multiplicand.size(); i++) {
+    product[i] = digitMulAdd(multiplicand[i], multiplier, carry, 0, &carry);
   }
-
-  for (; (carry || high) && i < acc.size(); i++) {
-    acc[i] = digitAdd3(acc[i], high, carry, &carry);
-    high = 0;
-  }
+  product[multiplicand.size()] = carry;
 }
 
 // Both inplaceSubDigits and inplaceAddDigits check the bounds once, by taking
@@ -991,8 +996,7 @@ void BigInt::divideDigitsInPlace(Digits u, ConstDigits v, Digits q,
     // it from the dividend. If there was "borrow", then the quotient digit
     // was one too high, so we must correct it and undo one subtraction of
     // the (shifted) divisor.
-    std::fill_n(qhatv.data(), qhatv.size(), 0);
-    multiplyAccumulateDigits(v, qhat, qhatv);
+    multiplyDigits(v, qhat, qhatv);
     Digit c = inplaceSubDigits(uj, qhatv);
     if (c) {
       c = inplaceAddDigits(uj, v);
@@ -1028,7 +1032,7 @@ bool BigInt::absoluteDivWithBigIntDivisor(
   const unsigned n = divisor->digitLength();
   const unsigned m = dividend->digitLength() - n;
 
-  RootedTuple<BigInt*, BigInt*, BigInt*, BigInt*> roots(cx);
+  RootedTuple<BigInt*, BigInt*, BigInt*> roots(cx);
 
   // The quotient to be computed.
   RootedField<BigInt*, 0> q(roots);
@@ -1041,9 +1045,9 @@ bool BigInt::absoluteDivWithBigIntDivisor(
 
   // In each iteration, `qhatv` holds `divisor` * `current quotient digit`.
   // "v" is the book's name for `divisor`, `qhat` the current quotient digit.
-  RootedField<BigInt*, 1> qhatv(roots,
-                                createUninitialized(cx, n + 1, isNegative));
-  if (!qhatv) {
+  Vector<Digit, 16, SystemAllocPolicy> qhatv;
+  if (!qhatv.resize(n + 1)) {
+    ReportOutOfMemory(cx);
     return false;
   }
 
@@ -1055,7 +1059,7 @@ bool BigInt::absoluteDivWithBigIntDivisor(
   Digit lastDigit = divisor->individualDigit(n - 1);
   unsigned shift = std::countl_zero(lastDigit);
 
-  RootedField<BigInt*, 2> shiftedDivisor(roots);
+  RootedField<BigInt*, 1> shiftedDivisor(roots);
   if (shift > 0) {
     shiftedDivisor = absoluteLeftShiftAlwaysCopy(cx, divisor, shift,
                                                  LeftShiftMode::SameSizeResult);
@@ -1068,16 +1072,16 @@ bool BigInt::absoluteDivWithBigIntDivisor(
 
   // Holds the (continuously updated) remaining part of the dividend, which
   // eventually becomes the remainder.
-  RootedField<BigInt*, 3> u(
+  RootedField<BigInt*, 2> u(
       roots, absoluteLeftShiftAlwaysCopy(cx, dividend, shift,
                                          LeftShiftMode::AlwaysAddOneDigit));
   if (!u) {
     return false;
   }
 
-  divideDigitsInPlace(
-      u->unguardedDigits(), shiftedDivisor->unguardedDigits().First(n),
-      quotient ? q->unguardedDigits() : Digits(), qhatv->unguardedDigits());
+  divideDigitsInPlace(u->unguardedDigits(),
+                      shiftedDivisor->unguardedDigits().First(n),
+                      quotient ? q->unguardedDigits() : Digits(), qhatv);
 
   if (quotient) {
     BigInt* bi = destructivelyTrimHighZeroDigits(cx, q);
