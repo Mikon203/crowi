@@ -559,7 +559,7 @@ pref("browser.urlbar.weather.uiTreatment", 0);
 
 // If `browser.urlbar.weather.featureGate` is true, this controls whether
 // weather suggestions are turned on.
-pref("browser.urlbar.suggest.weather", true);
+pref("browser.urlbar.suggest.weather", false);
 
 // If `browser.urlbar.trending.featureGate` is true, this controls whether
 // trending suggestions are turned on.
@@ -614,7 +614,7 @@ pref("browser.urlbar.quicksuggest.online.available", false);
 // [2] browser.urlbar.quicksuggest.online.available
 // [3] browser.urlbar.merino.ohttpConfigURL
 // [4] browser.urlbar.merino.ohttpRelayURL
-pref("browser.urlbar.quicksuggest.online.enabled", true, sticky);
+pref("browser.urlbar.quicksuggest.online.enabled", false, sticky);
 
 // Whether the quick suggest feature in the urlbar is enabled.
 pref("browser.urlbar.quicksuggest.enabled", false);
@@ -784,7 +784,7 @@ pref("browser.urlbar.addons.featureGate", false);
 
 // Feature gate pref for semanticHistory
 #if defined(EARLY_BETA_OR_EARLIER) || defined(MOZ_DEV_EDITION)
-pref("places.semanticHistory.featureGate", true);
+pref("places.semanticHistory.featureGate", false);
 #else
 pref("places.semanticHistory.featureGate", false);
 #endif
@@ -820,7 +820,7 @@ pref("browser.urlbar.mdn.minKeywordLength", 0);
 
 // If `browser.urlbar.mdn.featureGate` is true, this controls whether
 // mdn suggestions are turned on.
-pref("browser.urlbar.suggest.mdn", true);
+pref("browser.urlbar.suggest.mdn", false);
 
 // Feature gate pref for Yelp suggestions in the urlbar.
 pref("browser.urlbar.yelp.featureGate", false);
@@ -842,7 +842,7 @@ pref("browser.urlbar.yelp.serviceResultDistinction", false);
 
 // If `browser.urlbar.yelp.featureGate` is true, this controls whether
 // Yelp suggestions are turned on.
-pref("browser.urlbar.suggest.yelp", true);
+pref("browser.urlbar.suggest.yelp", false);
 
 // Feature gate pref for Fakespot suggestions in the urlbar.
 // TODO Bug 1982966: Remove this after all experiments and rollouts using it
@@ -862,7 +862,7 @@ pref("browser.urlbar.amp.minKeywordLength", 0);
 
 // If `browser.urlbar.amp.featureGate` is true, this controls whether AMP
 // suggestions are turned on.
-pref("browser.urlbar.suggest.amp", true);
+pref("browser.urlbar.suggest.amp", false);
 
 // Feature gate pref for Wikipedia suggestions in the urlbar (part of Firefox
 // Suggest).
@@ -870,7 +870,7 @@ pref("browser.urlbar.wikipedia.featureGate", false);
 
 // If `browser.urlbar.wikipedia.featureGate` is true, this controls whether
 // Wikipedia suggestions are turned on.
-pref("browser.urlbar.suggest.wikipedia", true);
+pref("browser.urlbar.suggest.wikipedia", false);
 
 // Controls whether realtime opt-in suggestions are turned on.
 pref("browser.urlbar.suggest.realtimeOptIn", true);
@@ -895,7 +895,7 @@ pref("browser.urlbar.yelpRealtime.featureGate", false);
 
 // If `browser.urlbar.yelpRealtime.featureGate` is true, this controls whether
 // Yelp realtime suggestions are turned on.
-pref("browser.urlbar.suggest.yelpRealtime", true);
+pref("browser.urlbar.suggest.yelpRealtime", false);
 
 // The minimum prefix length of a Yelp keyword the user must type to trigger
 // the suggestion. 0 means the min length should be taken from Nimbus or remote
@@ -996,7 +996,7 @@ pref("browser.search.separatePrivateDefault.featureGate", false);
 pref("browser.search.separatePrivateDefault.ui.banner.max", 0);
 
 // Enables search SERP telemetry page categorization.
-pref("browser.search.serpEventTelemetryCategorization.enabled", true);
+pref("browser.search.serpEventTelemetryCategorization.enabled", false);
 
 // A count of Glean SERP categorization event metrics that have been recorded
 // but not yet submitted in a ping. Needed to prevent sending a ping with only
@@ -1207,7 +1207,7 @@ pref("browser.tabs.groups.onboardingCallouts.enabled", false);
 // Number of times the "Tab group saved" confirmation hint has been shown
 pref("browser.tabs.groups.saveHintShownCount", 0);
 
-pref("browser.tabs.groups.smart.enabled", true);
+pref("browser.tabs.groups.smart.enabled", false);
 
 pref("browser.tabs.notes.enabled", false);
 
@@ -1234,9 +1234,9 @@ pref("browser.tabs.dragDrop.moveOverThresholdPercent", 80);
 pref("browser.tabs.firefox-view.logLevel", "Warn");
 
 // Special case to use search term when making a group from a single page search
-pref("browser.tabs.groups.smart.searchTopicEnabled", true);
+pref("browser.tabs.groups.smart.searchTopicEnabled", false);
 
-pref("browser.tabs.groups.smart.userEnabled", true);
+pref("browser.tabs.groups.smart.userEnabled", false);
 
 pref("security.allow_parent_unrestricted_js_loads", false);
 
@@ -2007,14 +2007,14 @@ pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-b", false);
 pref("browser.newtabpage.activity-stream.mobileDownloadModal.variant-c", false);
 
 // Mozilla Ad Routing Service (MARS) unified ads service
-pref("browser.newtabpage.activity-stream.unifiedAds.tiles.enabled", true);
-pref("browser.newtabpage.activity-stream.unifiedAds.spocs.enabled", true);
+pref("browser.newtabpage.activity-stream.unifiedAds.tiles.enabled", false);
+pref("browser.newtabpage.activity-stream.unifiedAds.spocs.enabled", false);
 pref("browser.newtabpage.activity-stream.unifiedAds.endpoint", "https://ads.mozilla.org/");
 pref("browser.newtabpage.activity-stream.unifiedAds.adsFeed.enabled", false);
 pref("browser.newtabpage.activity-stream.unifiedAds.ohttp.enabled", true);
 
 // Weather widget for newtab
-pref("browser.newtabpage.activity-stream.showWeather", true);
+pref("browser.newtabpage.activity-stream.showWeather", false);
 pref("browser.newtabpage.activity-stream.weather.query", "");
 pref("browser.newtabpage.activity-stream.weather.display", "detailed");
 
@@ -2065,7 +2065,7 @@ pref("browser.newtabpage.activity-stream.widgets.system.crossword.locale-config"
 pref("browser.newtabpage.activity-stream.widgets.system.crossword.region-block", "PL");
 
 // Promo card visibility
-pref("browser.newtabpage.activity-stream.discoverystream.promoCard.visible", true);
+pref("browser.newtabpage.activity-stream.discoverystream.promoCard.visible", false);
 
 // Preference to enable wallpaper selection in the Customize Menu of new tab page
 pref("browser.newtabpage.activity-stream.newtabWallpapers.enabled", true);
@@ -2111,9 +2111,9 @@ pref("browser.newtabpage.activity-stream.asrouter.providers.cfr", "{\"id\":\"cfr
 pref("browser.newtabpage.activity-stream.asrouter.providers.messaging-experiments", "{\"id\":\"messaging-experiments\",\"enabled\":true,\"type\":\"remote-experiments\",\"updateCycleInMs\":3600000}");
 
 // ASRouter user prefs
-pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", true);
-pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", true);
-pref("messaging-system.askForFeedback", true);
+pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
+pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);
+pref("messaging-system.askForFeedback", false);
 
 // The pref that controls if ASRouter uses the remote fluent files.
 // It's enabled by default, but could be disabled to force ASRouter to use the local files.
@@ -2162,7 +2162,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.ctaButtonSponsors", "")
 pref("browser.newtabpage.activity-stream.discoverystream.ctaButtonVariant", "");
 
 // Pref enabling content reporting
-pref("browser.newtabpage.activity-stream.discoverystream.reportAds.enabled", true);
+pref("browser.newtabpage.activity-stream.discoverystream.reportAds.enabled", false);
 
 // List of regions that do not get stories, regardless of stories-region-locale-config.
 pref("browser.newtabpage.activity-stream.discoverystream.region-stories-block", "");
@@ -2188,7 +2188,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.sections.personalizatio
 // List of locales that use inferred personalization.
 pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.locale-config", "en-US,en-GB,en-CA");
 
-pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.user.enabled", true);
+pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.user.enabled", false);
 
 // Override inferred personalization model JSON string that typically comes from rec API. Or "TEST" for a test model.
 pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.model.override", "");
@@ -2216,7 +2216,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.region-basic-config", "
 pref("browser.newtabpage.activity-stream.discoverystream.pocket-feed-parameters", "");
 pref("browser.newtabpage.activity-stream.discoverystream.merino-feed-experiment", false);
 
-pref("browser.newtabpage.activity-stream.telemetry.privatePing.enabled", true);
+pref("browser.newtabpage.activity-stream.telemetry.privatePing.enabled", false);
 
 // This preference isn't read anymore, but kept around until we eventually end
 // the rollout that's been setting it. Then we can remove the default here, and
@@ -2307,11 +2307,11 @@ pref("nimbus.firstUpdateComplete", false);
 #if defined(MOZ_ARTIFACT_BUILDS)
   pref("nimbus.telemetry.targetingContextEnabled", false);
 #else
-  pref("nimbus.telemetry.targetingContextEnabled", true);
+  pref("nimbus.telemetry.targetingContextEnabled", false);
 #endif
 
 // Enable Rollouts by default.
-pref("nimbus.rollouts.enabled", true);
+pref("nimbus.rollouts.enabled", false);
 
 // Nimbus QA prefs. Used to monitor pref-setting test experiments.
 pref("nimbus.qa.pref-1", "default");
@@ -2348,8 +2348,8 @@ pref("sidebar.animation.expand-on-hover.delay-duration-ms", 200);
 // you can introduce a new tool to the sidebar launcher.
 pref("sidebar.main.tools", "");
 pref("sidebar.installed.extensions", "");
-pref("sidebar.verticalTabs", false);
-pref("sidebar.verticalTabs.dragToPinPromo.dismissed", false);
+pref("sidebar.verticalTabs", true);
+pref("sidebar.verticalTabs.dragToPinPromo.dismissed", true);
 // One value per behavior, none shared across tab orientations. Vertical tabs:
 // "always-show", "expand-on-hover", "hide-sidebar". Horizontal tabs:
 // "hide-on-close" (default) and "hide-launcher" (switcher-only). The default
@@ -2393,33 +2393,33 @@ pref(
   '{"visibilityPref":"browser.resourceMonitor.enabled"}'
 );
 
-pref("browser.ml.chat.enabled", true);
+pref("browser.ml.chat.enabled", false);
 pref("browser.ml.chat.hideLocalhost", true);
 pref("browser.ml.chat.maxLength", 7000);
-pref("browser.ml.chat.menu", true);
-pref("browser.ml.chat.page", true);
-pref("browser.ml.chat.page.footerBadge", true);
-pref("browser.ml.chat.page.menuBadge", true);
+pref("browser.ml.chat.menu", false);
+pref("browser.ml.chat.page", false);
+pref("browser.ml.chat.page.footerBadge", false);
+pref("browser.ml.chat.page.menuBadge", false);
 pref("browser.ml.chat.prompt.prefix", '{"l10nId":"genai-prompt-prefix-selection"}');
 pref("browser.ml.chat.prompts.0", '{"id":"summarize","l10nId":"genai-prompts-summarize"}');
 pref("browser.ml.chat.prompts.1", '{"id":"explain","l10nId":"genai-prompts-explain","targeting":"contentType != \'page\'"}');
 pref("browser.ml.chat.prompts.3", '{"id":"quiz","l10nId":"genai-prompts-quiz","targeting":"(!provider|regExpMatch(\'gemini\') || region == \'US\') && contentType != \'page\'"}');
 pref("browser.ml.chat.prompts.4", '{"id":"proofread", "l10nId":"genai-prompts-proofread","targeting":"contentType != \'page\'"}');
 pref("browser.ml.chat.provider", "");
-pref("browser.ml.chat.shortcuts", true);
-pref("browser.ml.chat.shortcuts.custom", true);
-pref("browser.ml.chat.shortcuts.smartwindow", true);
+pref("browser.ml.chat.shortcuts", false);
+pref("browser.ml.chat.shortcuts.custom", false);
+pref("browser.ml.chat.shortcuts.smartwindow", false);
 pref("browser.ml.chat.shortcuts.longPress", 60000);
 pref("browser.ml.chat.shortcuts.debounce", 200);
 pref("browser.ml.chat.shortcut.onboardingMouseoverCount", 0);
-pref("browser.ml.chat.sidebar", true);
+pref("browser.ml.chat.sidebar", false);
 
 pref("browser.ml.linkPreview.allowedLanguages", "en");
 pref("browser.ml.linkPreview.blockListEnabled", true);
 pref("browser.ml.linkPreview.collapsed", false);
-pref("browser.ml.linkPreview.enabled", true);
+pref("browser.ml.linkPreview.enabled", false);
 pref("browser.ml.linkPreview.ignoreMs", 2000);
-pref("browser.ml.linkPreview.longPress", true);
+pref("browser.ml.linkPreview.longPress", false);
 pref("browser.ml.linkPreview.longPressMs", 1000);
 pref("browser.ml.linkPreview.noKeyPointsRegions", "");
 pref("browser.ml.linkPreview.optin", false);
@@ -2436,14 +2436,14 @@ pref("browser.ml.pageAssist.enabled", false);
 pref("browser.smartwindow.enabled", false);
 // Default endpoint for preset models
 pref("browser.smartwindow.endpoint", "https://mlpa-prod-prod-mozilla.freetls.fastly.net/v1");
-pref("browser.smartwindow.memories.generateFromHistory", true);
-pref("browser.smartwindow.memories.generateFromConversation", true);
+pref("browser.smartwindow.memories.generateFromHistory", false);
+pref("browser.smartwindow.memories.generateFromConversation", false);
 pref("browser.smartwindow.memories.hasSeenMemories", false);
 pref("browser.smartwindow.memoriesLogLevel", "Warn");
 // Gates resume-activity ("pick up where you left off") starter generation.
-pref("browser.smartwindow.resumeActivity.enabled", true);
+pref("browser.smartwindow.resumeActivity.enabled", false);
 // TODO Bug 2067871: remove once journey store is available.
-pref("browser.smartwindow.resumeCards.enabled", true);
+pref("browser.smartwindow.resumeCards.enabled", false);
 pref("browser.smartwindow.firstrun.autoAdvanceMS", 3000);
 pref("browser.smartwindow.firstrun.hasCompleted", false);
 pref("browser.smartwindow.showThemesNotice", true);
@@ -2458,8 +2458,8 @@ pref("browser.smartwindow.mistralRelease", true);
 pref("places.semanticHistory.smartwindow.distanceThreshold", "0.6");
 
 // Smart Window: Auto Tab Grouping (bug 2054500).
-pref("browser.smartwindow.autoTabGrouping.enabled", true);
-pref("browser.smartwindow.autoTabGrouping.preloadModels", true);
+pref("browser.smartwindow.autoTabGrouping.enabled", false);
+pref("browser.smartwindow.autoTabGrouping.preloadModels", false);
 pref("browser.smartwindow.autoTabGrouping.maxGroups", 3);
 pref("browser.smartwindow.autoTabGrouping.minTabsPerGroup", 2);
 pref("browser.smartwindow.autoTabGrouping.minCandidateTabs", 2);
@@ -2471,7 +2471,7 @@ pref("browser.smartwindow.autoTabGrouping.nonEnglishThresholdInt", 550);
 pref("browser.smartwindow.autoTabGrouping.loglevel", "Warn");
 
 // Smart Window: Smart Form Fill (bug 2055009).
-pref("browser.smartwindow.smartformfill.enabled", true);
+pref("browser.smartwindow.smartformfill.enabled", false);
 
 // Comma-separated ISO 3166-1 region codes where the feature is unavailable.
 pref("browser.smartwindow.smartformfill.disallowedRegions", "FR");
@@ -2482,16 +2482,16 @@ pref("browser.smartwindow.smartformfill.disallowedRegions", "FR");
 pref("browser.smartwindow.smartformfill.minFormFields", 4);
 
 #ifdef NIGHTLY_BUILD
-pref("browser.smartwindow.aitab.menus", true);
+pref("browser.smartwindow.aitab.menus", false);
 #else
 pref("browser.smartwindow.aitab.menus", false);
 #endif
 
 // Smart Window Agent
-pref("browser.smartwindow.agent.enabled", true);
+pref("browser.smartwindow.agent.enabled", false);
 pref("browser.smartwindow.agent.supportedRegions", "US,CA");
 // Toolbar button that opens the monitor creation panel (bug 2062113).
-pref("browser.smartwindow.agent.toolbar.enabled", true);
+pref("browser.smartwindow.agent.toolbar.enabled", false);
 // Announces the monitor agent as a new feature with a dot on the toolbar
 // button, for as long as the rollout runs. Set on the default branch by Nimbus
 // so that dismissing it, which writes the user branch, survives the rollout
@@ -2509,7 +2509,7 @@ pref("browser.smartwindow.searchQuery.apiKey", "");
 
 // Smart Window: when true, search_the_web returns Exa snippets straight to the
 // main assistant instead of generating an answer from background page reads.
-pref("browser.smartwindow.searchTheWebFast", true);
+pref("browser.smartwindow.searchTheWebFast", false);
 
 // Smart Window: when true, search_the_web asks Exa's /answers service for a
 // written answer and its citations in one call. Takes precedence over
@@ -2518,7 +2518,7 @@ pref("browser.smartwindow.searchTheWebAnswers", false);
 
 // Smart Window: approximate location (city, region, country) from Merino
 // geolocation, kept in memory.
-pref("browser.smartwindow.location.enabled", true);
+pref("browser.smartwindow.location.enabled", false);
 
 // Smart Window Logging
 pref("browser.smartwindow.aiTabHistory.logLevel", "Error");
@@ -2609,10 +2609,10 @@ pref("identity.fxaccounts.commands.remoteTabManagement.enabled", true);
 
 // Controls whether or not the client association ping has values set on it
 // when the sync-ui-state:update notification fires.
-pref("identity.fxaccounts.telemetry.clientAssociationPing.enabled", true);
+pref("identity.fxaccounts.telemetry.clientAssociationPing.enabled", false);
 
 // Controls whether the fxAccouintsClientInfo ping is submitted.
-pref("identity.fxaccounts.telemetry.clientInfoPing.enabled", true);
+pref("identity.fxaccounts.telemetry.clientInfoPing.enabled", false);
 
 // Note: when media.gmp-*.visible is true, provided we're running on a
 // supported platform/OS version, the corresponding CDM appears in the
@@ -2676,19 +2676,19 @@ pref("browser.translations.quickAction.enabled", true);
 
 // Telemetry settings.
 // Determines if Telemetry pings can be archived locally.
-pref("toolkit.telemetry.archive.enabled", true);
+pref("toolkit.telemetry.archive.enabled", false);
 // Enables sending the shutdown ping when Firefox shuts down.
-pref("toolkit.telemetry.shutdownPingSender.enabled", true);
+pref("toolkit.telemetry.shutdownPingSender.enabled", false);
 // Enables using the `pingsender` background task.
 pref("toolkit.telemetry.shutdownPingSender.backgroundtask.enabled", false);
 // Enables sending the shutdown ping using the pingsender from the first session.
 pref("toolkit.telemetry.shutdownPingSender.enabledFirstSession", false);
 // Enables sending a duplicate of the first shutdown ping from the first session.
-pref("toolkit.telemetry.firstShutdownPing.enabled", true);
+pref("toolkit.telemetry.firstShutdownPing.enabled", false);
 // Enables sending the 'new-profile' ping on new profiles.
-pref("toolkit.telemetry.newProfilePing.enabled", true);
+pref("toolkit.telemetry.newProfilePing.enabled", false);
 // Enables sending 'bhr' pings when the browser hangs.
-pref("toolkit.telemetry.bhrPing.enabled", true);
+pref("toolkit.telemetry.bhrPing.enabled", false);
 
 // Enable GMP support in the addon manager.
 pref("media.gmp-provider.enabled", true);
@@ -2855,7 +2855,7 @@ pref("browser.contentblocking.report.tracker.url", "https://support.mozilla.org/
 pref("browser.contentblocking.report.fingerprinter.url", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/fingerprinters-report");
 pref("browser.contentblocking.report.cryptominer.url", "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/cryptominers-report");
 
-pref("browser.contentblocking.cfr-milestone.enabled", true);
+pref("browser.contentblocking.cfr-milestone.enabled", false);
 pref("browser.contentblocking.cfr-milestone.milestone-achieved", 0);
 // Milestones should always be in increasing order
 pref("browser.contentblocking.cfr-milestone.milestones", "[1000, 5000, 10000, 25000, 50000, 100000, 250000, 314159, 500000, 750000, 1000000, 1250000, 1500000, 1750000, 2000000, 2250000, 2500000, 8675309]");
@@ -2924,7 +2924,7 @@ pref("browser.tabs.remote.warmup.maxTabs", 3);
 pref("browser.tabs.remote.warmup.unloadDelayMs", 2000);
 
 // For the about:tabcrashed page
-pref("browser.tabs.crashReporting.sendReport", true);
+pref("browser.tabs.crashReporting.sendReport", false);
 pref("browser.tabs.crashReporting.includeURL", false);
 
 // Enables the "Unload Tab" context menu item
@@ -3057,7 +3057,7 @@ pref("browser.autocomplete.removeRecords.enabled", false);
 // crash reports, and then show a notification for submitting
 // those reports.
 #ifdef NIGHTLY_BUILD
-  pref("browser.crashReports.unsubmittedCheck.enabled", true);
+  pref("browser.crashReports.unsubmittedCheck.enabled", false);
 #else
   pref("browser.crashReports.unsubmittedCheck.enabled", false);
 #endif
@@ -3122,7 +3122,7 @@ pref("network.trr_ui.fallback_was_checked", true);
 // Normandy client preferences
 pref("app.normandy.api_url", "https://normandy.cdn.mozilla.net/api/v1");
 pref("app.normandy.dev_mode", false);
-pref("app.normandy.enabled", true);
+pref("app.normandy.enabled", false);
 pref("app.normandy.first_run", true);
 pref("app.normandy.logging.level", 50); // Warn
 pref("app.normandy.run_interval_seconds", 21600); // 6 hours
@@ -3130,7 +3130,7 @@ pref("app.normandy.shieldLearnMoreUrl", "https://support.mozilla.org/1/firefox/%
 pref("app.normandy.last_seen_buildid", "");
 pref("app.normandy.onsync_skew_sec", 600);
 #ifdef MOZ_DATA_REPORTING
-  pref("app.shield.optoutstudies.enabled", true);
+  pref("app.shield.optoutstudies.enabled", false);
 #else
   pref("app.shield.optoutstudies.enabled", false);
 #endif
@@ -3162,7 +3162,7 @@ pref("app.normandy.onsync_skew_sec", 600);
 #endif
 
 // Enable personalized extension recommendations
-pref("browser.discovery.enabled", true);
+pref("browser.discovery.enabled", false);
 
 pref("browser.engagement.recent_visited_origins.expiry", 86400); // 24 * 60 * 60 (24 hours in seconds)
 pref("browser.engagement.downloads-button.has-used", false);
@@ -3829,7 +3829,7 @@ pref("toolkit.contentRelevancy.log", false);
 // The number of days after which to rotate the context ID. 0 means to disable
 // rotation altogether.
 pref("browser.contextual-services.contextId.rotation-in-days", 3);
-pref("browser.contextual-services.contextId.rust-component.enabled", true);
+pref("browser.contextual-services.contextId.rust-component.enabled", false);
 // Pref to block feature callout messages related to IP protection
 pref("browser.ipProtection.blockIPProtectionCallouts", false);
 // Pref to enable the IP protection feature
@@ -3934,3 +3934,41 @@ pref("distribution.mozillaonline.ignore", true);
 #ifdef XP_MACOSX
   pref("browser.macAppMenu.setAsDefaultShown", false);
 #endif
+
+// ---------------------------------------------------------------------------
+// Custom overrides: telemetry/tracking off, AI off (except Translations),
+// vertical tabs on, dark mode on. Later definitions win.
+// ---------------------------------------------------------------------------
+pref("toolkit.telemetry.enabled", false);
+pref("toolkit.telemetry.unified", false);
+pref("toolkit.telemetry.server", "data:,");
+pref("toolkit.telemetry.updatePing.enabled", false);
+pref("toolkit.telemetry.reportingpolicy.firstRun", false);
+pref("toolkit.coverage.opt-out", true);
+pref("toolkit.coverage.endpoint.base", "");
+pref("datareporting.healthreport.uploadEnabled", false);
+pref("datareporting.policy.dataSubmissionEnabled", false);
+pref("datareporting.usage.uploadEnabled", false);
+pref("browser.ping-centre.telemetry", false);
+pref("browser.newtabpage.activity-stream.feeds.telemetry", false);
+pref("browser.newtabpage.activity-stream.telemetry", false);
+pref("browser.urlbar.eventTelemetry.enabled", false);
+pref("dom.private-attribution.submission.enabled", false);
+pref("extensions.htmlaboutaddons.recommendations.enabled", false);
+pref("browser.newtabpage.activity-stream.showSponsored", false);
+pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
+pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
+pref("browser.ai.control.default", "blocked");
+pref("browser.ai.control.translations", "available");
+pref("browser.ai.control.sidebarChatbot", "blocked");
+pref("browser.ai.control.linkPreviewKeyPoints", "blocked");
+pref("browser.ai.control.smartTabGroups", "blocked");
+pref("browser.ai.control.pdfjsAltText", "blocked");
+pref("browser.ai.control.smartWindow", "blocked");
+pref("pdfjs.enableAltText", false);
+pref("pdfjs.enableGuessAltText", false);
+pref("pdfjs.enableAltTextModelDownload", false);
+pref("extensions.activeThemeID", "firefox-compact-dark@mozilla.org");
+pref("browser.theme.toolbar-theme", 0);
+pref("browser.theme.content-theme", 0);
+pref("layout.css.prefers-color-scheme.content-override", 0);
