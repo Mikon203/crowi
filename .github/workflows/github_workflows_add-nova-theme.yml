@@ -1,0 +1,84 @@
+name: Add Nova Theme
+
+on:
+  workflow_dispatch:
+
+jobs:
+  restore-nova:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Restore Nova theme files and registration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p browser/themes/addons/aiwindow-nova
+
+          curl -fsSL https://raw.githubusercontent.com/mozilla-firefox/firefox/f0d8507effaed215a7ff810b76c9bc5d3f11a6ab/browser/themes/addons/aiwindow-nova/manifest.in.json \
+            -o browser/themes/addons/aiwindow-nova/manifest.in.json
+
+          curl -fsSL https://raw.githubusercontent.com/mozilla-firefox/firefox/f0d8507effaed215a7ff810b76c9bc5d3f11a6ab/browser/themes/addons/aiwindow-nova/aiwindow-theme-nova.css \
+            -o browser/themes/addons/aiwindow-nova/aiwindow-theme-nova.css
+
+          python - <<'PY'
+          from pathlib import Path
+
+          jar = Path("browser/themes/addons/jar.mn")
+          text = jar.read_text()
+          target = "content/buildin-themes/aiwindow-nova/manifest.json"
+          if "aiwindow-nova/manifest.json" not in text:
+              inject = """
+  content/buildin-themes/aiwindow-nova/manifest.json    (aiwindow-nova/manifest.json)
+  content/buildin-themes/aiwindow-nova/aiwindow-theme-nova.css (aiwindow-nova/aiwindow-theme-nova.css)
+"""
+              marker = "content/buildin-themes/aiwindow/aiwindow-theme.css"
+              text = text.replace(marker, marker + inject)
+              jar.write_text(text)
+
+          moz = Path("browser/themes/addons/moz.build")
+          text = moz.read_text()
+          block = '''GeneratedFile(
+    "aiwindow-nova/manifest.json",
+    script="process_tokens.py",
+    entry_point="process_tokens",
+    inputs=[
+        "aiwindow-nova/manifest.in.json",
+        "/browser/themes/shared/tabbrowser/tab.nova.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/base/background.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/base/color.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/base/color.nova.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/base/focus.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/base/text.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/components/card.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/components/card.nova.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/components/sidebar.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/components/toolbar.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/components/toolbar.nova.tokens.json",
+        "/toolkit/themes/shared/design-system/src/tokens/components/toolbarbutton.nova.tokens.json",
+    ],
+)
+'''
+          if '\"aiwindow-nova/manifest.json\"' not in text:
+              moz.write_text(text.rstrip() + "\n\n" + block + "\n")
+          PY
+
+      - name: Commit changes if needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if ! git diff --quiet -- browser/themes/addons; then
+            git add browser/themes/addons
+            git commit -m "Restore Nova theme"
+            git push
+          else
+            echo "Nova already restored."
+          fi
