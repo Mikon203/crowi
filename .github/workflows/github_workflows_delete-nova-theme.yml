@@ -1,0 +1,67 @@
+name: Delete Nova Theme
+
+on:
+  workflow_dispatch:
+
+jobs:
+  remove-nova:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Remove Nova theme registration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+
+          theme_dir = Path("browser/themes/addons/aiwindow-nova")
+          if theme_dir.exists():
+              shutil.rmtree(theme_dir)
+
+          jar = Path("browser/themes/addons/jar.mn")
+          if jar.exists():
+              text = jar.read_text()
+              text = text.replace(
+                  '\n  content/buildin-themes/aiwindow-nova/manifest.json    (aiwindow-nova/manifest.json)\n  content/buildin-themes/aiwindow-nova/aiwindow-theme-nova.css (aiwindow-nova/aiwindow-theme-nova.css)\n',
+                  '\n'
+              )
+              jar.write_text(text)
+
+          moz = Path("browser/themes/addons/moz.build")
+          if moz.exists():
+              text = moz.read_text()
+              start = text.find('GeneratedFile(')
+              if start != -1:
+                  # remove the block for aiwindow-nova
+                  end = text.find(')\n', start)
+                  while end != -1:
+                      candidate = text[start:end+2]
+                      if '"aiwindow-nova/manifest.json"' in candidate:
+                          text = text[:start] + text[end+2:]
+                          break
+                      end = text.find(')\n', end + 1)
+              moz.write_text(text)
+          PY
+
+      - name: Commit changes if needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if ! git diff --quiet -- browser/themes/addons; then
+            git add browser/themes/addons
+            git commit -m "Remove Nova theme"
+            git push
+          else
+            echo "Nova already removed."
+          fi
