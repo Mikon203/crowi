@@ -1855,3 +1855,15 @@ reduced-protection-infobar-reload-button = Reload
   .accesskey = R
 reduced-protection-infobar-never-show-button = Don’t show again
   .accesskey = D
+
+## Crowi first-run setup
+
+crowi-first-run-nova-title = Customize Crowi
+crowi-first-run-nova-message = Would you like to disable the Nova theme and use the classic Firefox interface?
+crowi-first-run-nova-disable = Disable Nova
+crowi-first-run-nova-keep = Keep Nova
+
+crowi-first-run-import-title = Import your browser data
+crowi-first-run-import-message = Would you like to import bookmarks, passwords, history, and other data from another browser?
+crowi-first-run-import = Import data
+crowi-first-run-import-skip = Not now
