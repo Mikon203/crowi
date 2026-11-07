@@ -687,35 +687,37 @@ nsRect nsDisplayListBuilder::OutOfFlowDisplayData::ComputeVisibleRectForFrame(
   if (MOZ_LIKELY(StaticPrefs::apz_allow_zooming()) &&
       aBuilder->IsPaintingToWindow() && !inPartialUpdate &&
       DisplayPortUtils::IsFixedPosFrameInDisplayPort(aFrame)) {
+    // Start with the entire ViewportFrame's rect.
+    MOZ_ASSERT(aFrame->GetParent()->IsViewportFrame());
     dirtyRectRelativeToDirtyFrame =
-        nsRect(nsPoint(0, 0), aFrame->GetParent()->GetSize());
+        aFrame->GetParent()->GetRectRelativeToSelf();
 
     // If there's a visual viewport size set, restrict the amount of the
-    // fixed-position element we paint to the visual viewport. (In general
-    // the fixed-position element can be as large as the layout viewport,
-    // which at a high zoom level can cause us to paint too large of an
-    // area.)
+    // fixed-position element we paint to the displayport, so that
+    // async-scrolling the visual viewport within the layout viewport will not
+    // checkerboard. (In general the fixed-position element can be as large as
+    // the layout viewport, which at a high zoom level can cause us to paint too
+    // large of an area.)
     PresShell* presShell = aFrame->PresShell();
     if (presShell->IsVisualViewportSizeSet()) {
-      dirtyRectRelativeToDirtyFrame =
-          nsRect(presShell->GetVisualViewportOffsetRelativeToLayoutViewport(),
-                 presShell->GetVisualViewportSize());
-      // But if we have a displayport, expand it to the displayport, so
-      // that async-scrolling the visual viewport within the layout viewport
-      // will not checkerboard.
-      if (nsIFrame* rootScrollContainerFrame =
-              presShell->GetRootScrollContainerFrame()) {
-        nsRect displayport;
-        // Note that the displayport here is already in the right coordinate
-        // space: it's relative to the scroll port (= layout viewport), but
-        // covers the visual viewport with some margins around it, which is
-        // exactly what we want.
-        if (DisplayPortUtils::GetDisplayPort(
-                rootScrollContainerFrame->GetContent(), &displayport,
-                DisplayPortOptions().With(ContentGeometryType::Fixed))) {
-          dirtyRectRelativeToDirtyFrame = displayport;
-        }
-      }
+      const ScrollContainerFrame* rootScrollContainerFrame =
+          presShell->GetRootScrollContainerFrame();
+      MOZ_ASSERT(rootScrollContainerFrame,
+                 "DisplayPortUtils::IsFixedPosFrameInDisplayPort() guarantees "
+                 "that the root scroll container frame exists!");
+
+      // Note that the displayport here is in the right coordinate space: it's
+      // relative to the root scroll container frame, and covers the visual
+      // viewport with some margins around it, which is exactly what we want.
+      DebugOnly<bool> hasDisplayPort = DisplayPortUtils::GetDisplayPort(
+          rootScrollContainerFrame->GetContent(),
+          &dirtyRectRelativeToDirtyFrame,
+          DisplayPortOptions()
+              .With(DisplayportRelativeTo::ScrollFrame)
+              .With(ContentGeometryType::Fixed));
+      MOZ_ASSERT(hasDisplayPort,
+                 "DisplayPortUtils::IsFixedPosFrameInDisplayPort() guarantees "
+                 "that the displayport exists!");
     }
     visible = dirtyRectRelativeToDirtyFrame;
     if (StaticPrefs::apz_test_logging_enabled() &&
@@ -5561,7 +5563,7 @@ WebRenderCommandsResult nsDisplayOwnLayer::CreateWebRenderCommands(
   const bool shouldSnap = IsZoomingLayer() || ShouldGetFixedAnimationId() ||
                           (rootScrollbarContainer && HasDynamicToolbar());
 
-  Maybe<wr::WrSpatialId> referenceFrame;
+  Maybe<DefinedReferenceFrame> referenceFrame;
   if (animationId || shouldSnap) {
     wr::ReferenceFrameParams rfParams;
     rfParams.animation_id = animationId;
@@ -5636,17 +5638,52 @@ void nsDisplayOwnLayer::WriteDebugInfo(std::stringstream& aStream) {
                  .get();
 }
 
+static ViewTransition* SubdocumentViewTransition(nsIFrame* aSubDocFrame) {
+  PresShell* ps =
+      static_cast<nsSubDocumentFrame*>(aSubDocFrame)->GetSubdocumentPresShell();
+  return ps ? ps->GetDocument()->GetActiveViewTransition() : nullptr;
+}
+
 WebRenderCommandsResult nsDisplayViewTransitionCapture::CreateWebRenderCommands(
     wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
     const StackingContextHelper& aSc, RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
   Maybe<wr::SnapshotInfo> si;
   nsPresContext* pc = mFrame->PresContext();
+  if (mKind == Kind::Subdocument) {
+    ViewTransition* vt = SubdocumentViewTransition(mFrame);
+    MOZ_ASSERT(vt && vt->IsCapturingSubdocumentSnapshot());
+    // Only what was built is captured, so don't make the snapshot bigger.
+    const nsRect area =
+        vt->ClipSubdocumentSnapshotRect(GetBuildingRect() - ToReferenceFrame());
+    const wr::ImageKey* key =
+        !area.IsEmpty()
+            ? vt->GetOrCreateSubdocumentSnapshotKey(aManager, aResources)
+            : nullptr;
+    wr::StackingContextParams params;
+    params.clip =
+        wr::WrStackingContextClip::ClipChain(aBuilder.CurrentClipChainId());
+    if (key) {
+      si.emplace(wr::SnapshotInfo{
+          .key = wr::SnapshotImageKey{*key},
+          .area = wr::ToLayoutRect(LayoutDeviceRect::FromAppUnits(
+              area + ToReferenceFrame(), pc->AppUnitsPerDevPixel())),
+          .detached = true,
+      });
+      params.snapshot = si.ptr();
+    }
+    StackingContextHelper sc(aSc, GetActiveScrolledRoot(), mFrame, this,
+                             aBuilder, params);
+    return nsDisplayWrapList::CreateWebRenderCommands(
+        aBuilder, aResources, sc, aManager, aDisplayListBuilder);
+  }
+
+  const bool isRoot = mKind == Kind::Root;
   nsIFrame* capturedFrame =
-      mIsRoot ? pc->FrameConstructor()->GetRootElementStyleFrame()
-              : nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
+      isRoot ? pc->FrameConstructor()->GetRootElementStyleFrame()
+             : nsLayoutUtils::FirstContinuationOrIBSplitSibling(mFrame);
   auto captureRect =
-      ViewTransition::CapturedInkOverflowRectForFrame(capturedFrame, mIsRoot);
+      ViewTransition::CapturedInkOverflowRectForFrame(capturedFrame, isRoot);
   auto* vt = pc->Document()->GetActiveViewTransition();
   auto key = [&]() -> Maybe<wr::SnapshotImageKey> {
     if (NS_WARN_IF(!vt)) {
@@ -5704,7 +5741,7 @@ WebRenderCommandsResult nsDisplayViewTransitionCapture::CreateWebRenderCommands(
   // not identity, because we generate a new coordinate system already from the
   // nsDisplayTransform (see nsDisplayTransform::CreateWebRenderCommands() for
   // more details).
-  Maybe<wr::WrSpatialId> referenceFrame;
+  Maybe<DefinedReferenceFrame> referenceFrame;
   if (mFrame->IsTransformed()) {
     // Use an identity matrix to force to push a reference frame to create a new
     // coordinate system for view transition captured frame.
@@ -5722,8 +5759,8 @@ WebRenderCommandsResult nsDisplayViewTransitionCapture::CreateWebRenderCommands(
     // The capture rect is relative to the first fragment of the captured
     // element, but we might be a merged item for another fragment.
     const nsPoint offsetToCapturedFrame =
-        mIsRoot || capturedFrame == mFrame ? nsPoint()
-                                           : capturedFrame->GetOffsetTo(mFrame);
+        isRoot || capturedFrame == mFrame ? nsPoint()
+                                          : capturedFrame->GetOffsetTo(mFrame);
 
     si.emplace(wr::SnapshotInfo{
         .key = *key,
@@ -5738,6 +5775,33 @@ WebRenderCommandsResult nsDisplayViewTransitionCapture::CreateWebRenderCommands(
                            params, referenceFrame);
   return nsDisplayWrapList::CreateWebRenderCommands(
       aBuilder, aResources, sc, aManager, aDisplayListBuilder);
+}
+
+nsDisplayViewTransitionSubdocumentSnapshot::
+    nsDisplayViewTransitionSubdocumentSnapshot(nsDisplayListBuilder* aBuilder,
+                                               nsSubDocumentFrame* aFrame,
+                                               const nsRect& aRect)
+    : nsPaintedDisplayItem(aBuilder, aFrame), mRect(aRect) {
+  MOZ_COUNT_CTOR(nsDisplayViewTransitionSubdocumentSnapshot);
+}
+
+WebRenderCommandsResult
+nsDisplayViewTransitionSubdocumentSnapshot::CreateWebRenderCommands(
+    wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
+    const StackingContextHelper& aSc, RenderRootStateManager* aManager,
+    nsDisplayListBuilder* aDisplayListBuilder) {
+  ViewTransition* vt = SubdocumentViewTransition(mFrame);
+  const wr::ImageKey* key = vt ? vt->ReadSubdocumentSnapshotKey() : nullptr;
+  if (!key) {
+    return Ok();
+  }
+  const auto rect = wr::ToLayoutRect(LayoutDeviceRect::FromAppUnits(
+      mRect + ToReferenceFrame(),
+      mFrame->PresContext()->AppUnitsPerDevPixel()));
+  aBuilder.PushImage(rect, rect, !BackfaceIsHidden(),
+                     /* aForceAntiAliasing = */ false, wr::ImageRendering::Auto,
+                     *key);
+  return Ok();
 }
 
 nsDisplaySubDocument::nsDisplaySubDocument(nsDisplayListBuilder* aBuilder,
@@ -7016,27 +7080,27 @@ WebRenderCommandsResult nsDisplayTransform::CreateWebRenderCommands(
     wr::ReferenceFrameParams originRfParams;
     originRfParams.is_2d_scale_translation = true;
     originRfParams.should_snap = true;
-    wr::WrSpatialId originSpatialId =
+    DefinedReferenceFrame originFrame =
         aManager->CommandBuilder().DefineReferenceFrame(
             aBuilder, mFrame,
             WebRenderCommandBuilder::FrameReferenceFrame::SVGOrigin, position,
             originRfParams);
     originSc.emplace(aSc, GetActiveScrolledRoot(), mFrame, this, aBuilder,
-                     originParams, Some(originSpatialId), boundsSize);
+                     originParams, Some(originFrame), boundsSize);
     // Items take their spatial node from the clip manager, which maps their
     // ASR to a spatial id. The inner stacking context only overrides that
     // mapping if it creates a reference frame or has a non-zero origin, which
     // is not the case with an identity viewBox transform. Override it here so
     // that the content is always positioned by the snapped origin frame.
     aManager->CommandBuilder().PushOverrideForASR(GetActiveScrolledRoot(),
-                                                  originSpatialId);
+                                                  originFrame.mId);
     position = LayoutDevicePoint();
   }
 
   // The transform, or the position alone if it is untransformed, goes into a
   // reference frame. This has to be defined once originSc is in place, as
   // that is the space it is in.
-  Maybe<wr::WrSpatialId> referenceFrame;
+  Maybe<DefinedReferenceFrame> referenceFrame;
   if (transformForSC || animationsId || position != LayoutDevicePoint()) {
     wr::ReferenceFrameParams rfParams;
     rfParams.transform_style = params.transform_style;
@@ -7815,7 +7879,7 @@ WebRenderCommandsResult nsDisplayPerspective::CreateWebRenderCommands(
   // transformation for the perspective contents.
   rfParams.scrolling_relative_to = scrollingRelativeTo.ptrOr(nullptr);
 
-  wr::WrSpatialId referenceFrame =
+  DefinedReferenceFrame referenceFrame =
       aManager->CommandBuilder().DefineReferenceFrame(
           aBuilder, mFrame,
           WebRenderCommandBuilder::FrameReferenceFrame::Perspective,
@@ -8571,6 +8635,21 @@ class WrPathRecorder final : public gfx::PathBuilder {
   bool mInSubPath = false;
 };
 
+// Offset from the clip path's user space to the reference frame, snapped like
+// the mask image for non-SVG frames, see ComputeEffectOffset.
+static nsPoint ClipPathToUserSpaceOffset(nsIFrame* aFrame,
+                                         const nsPoint& aToReferenceFrame) {
+  if (aFrame->IsSVGFrame()) {
+    return aToReferenceFrame;
+  }
+  const nsPoint toBoundingBox =
+      SVGIntegrationUtils::GetOffsetToBoundingBox(aFrame);
+  const nsPoint p = aToReferenceFrame - toBoundingBox;
+  return nsPoint(aFrame->PresContext()->RoundAppUnitsToNearestDevPixels(p.x),
+                 aFrame->PresContext()->RoundAppUnitsToNearestDevPixels(p.y)) +
+         toBoundingBox;
+}
+
 static Maybe<wr::WrClipChainId> CreateSimpleClipRegion(
     const nsDisplayMasksAndClipPaths& aDisplayItem,
     wr::DisplayListBuilder& aBuilder) {
@@ -8703,23 +8782,27 @@ static Maybe<wr::WrClipChainId> CreateSimpleClipRegion(
 
       break;
     }
+    case StyleBasicShape::Tag::Polygon: {
+      // Same as CSSClipPathInstance::CreateClipPathPolygon, positioned in the
+      // reference frame.
+      RefPtr<WrPathRecorder> recorder = MakeRefPtr<WrPathRecorder>();
+      const nsPoint toUserSpace =
+          ClipPathToUserSpaceOffset(frame, toReferenceFrame);
+      RefPtr<gfx::Path> unused = ShapeUtils::BuildPolygonPath(
+          shape, refBox + toUserSpace, appUnitsPerDevPixel, recorder);
+      clipId = recorder->DefineClip(
+          aBuilder, shape.AsPolygon().fill == StyleFillRule::Nonzero
+                        ? wr::FillRule::Nonzero
+                        : wr::FillRule::Evenodd);
+      break;
+    }
     case StyleBasicShape::Tag::PathOrShape: {
       // Same as CSSClipPathInstance::CreateClipPathPath and
       // CSSClipPathInstance::CreateClipPathShape, positioned in the reference
       // frame.
       RefPtr<WrPathRecorder> recorder = MakeRefPtr<WrPathRecorder>();
-      nsPoint toUserSpace = toReferenceFrame;
-      if (!frame->IsSVGFrame()) {
-        // Snapped like the mask image, see ComputeEffectOffset.
-        const nsPoint toBoundingBox =
-            SVGIntegrationUtils::GetOffsetToBoundingBox(frame);
-        const nsPoint p = toReferenceFrame - toBoundingBox;
-        toUserSpace =
-            nsPoint(
-                frame->PresContext()->RoundAppUnitsToNearestDevPixels(p.x),
-                frame->PresContext()->RoundAppUnitsToNearestDevPixels(p.y)) +
-            toBoundingBox;
-      }
+      const nsPoint toUserSpace =
+          ClipPathToUserSpaceOffset(frame, toReferenceFrame);
       const gfx::Point offset =
           LayoutDevicePoint::FromAppUnits(refBox.TopLeft() + toUserSpace,
                                           appUnitsPerDevPixel)

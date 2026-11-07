@@ -20,12 +20,13 @@
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
 #include "js/Transcoding.h"  // JS::TranscodeRange, JS::TranscodeResult, JS::IsTranscodeFailureResult
 #include "js/Utility.h"
-#include "js/experimental/CompileScript.h"  // JS::FrontendContext, JS::NewFrontendContext, JS::DestroyFrontendContext, JS::SetNativeStackQuota, JS::ThreadStackQuotaForSize, JS::CompilationStorage, JS::CompileGlobalScriptToStencil, JS::CompileModuleScriptToStencil, JS::DecodeStencil, JS::PrepareForInstantiate, JS::AllowCancellingCompilation, JS::RequestFrontendCompilationCancellation
+#include "js/experimental/CompileScript.h"  // JS::FrontendContext, JS::NewFrontendContext, JS::DestroyFrontendContext, JS::SetNativeStackQuota, JS::ThreadStackQuotaForSize, JS::CompilationStorage, JS::CompileGlobalScriptToStencil, JS::CompileModuleScriptToStencil, JS::DecodeStencil, JS::PrepareForInstantiate, JS::FrontendContextCreationOptions, JS::RequestFrontendCompilationCancellation
 #include "js/experimental/JSStencil.h"  // JS::Stencil, JS::InstantiationStorage, JS::StartCollectingDelazifications, JS::IsStencilCacheable
 #include "js/loader/LoadedScript.h"
 #include "js/loader/ModuleLoadRequest.h"
 #include "js/loader/ModuleLoaderBase.h"
 #include "js/loader/ScriptLoadRequest.h"
+#include "mozilla/AntiTrackingUtils.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/AsyncEventDispatcher.h"
@@ -2577,8 +2578,9 @@ void StencilCompileOrDecodeTask::CancelTask() {
 }
 
 nsresult StencilCompileOrDecodeTask::InitFrontendContext() {
-  mFrontendContext =
-      JS::NewFrontendContext(JS::AllowCancellingCompilation::Yes);
+  JS::FrontendContextCreationOptions options;
+  options.allowCancellingCompilation = true;
+  mFrontendContext = JS::NewFrontendContext(&options);
   if (!mFrontendContext) {
     mIsCancelled = true;
     return NS_ERROR_OUT_OF_MEMORY;
@@ -3289,6 +3291,13 @@ void ScriptLoader::CalculateCacheFlag(ScriptLoadRequest* aRequest) {
     return;
   }
 
+  if (aRequest->HadRedirected()) {
+    LOG(("ScriptLoadRequest (%p): Bytecode-cache: Skip all: redirected",
+         aRequest));
+    aRequest->MarkNotCacheable();
+    return;
+  }
+
   bool isHTTPS = aRequest->URI()->SchemeIs("https");
 
   if (!aRequest->URI()->SchemeIs("http") && !isHTTPS) {
@@ -3608,6 +3617,10 @@ nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {
     }
 
     globalObject = scriptGlobal;
+
+    // Bug 2072122: Trusted Types readiness experiment only, to be removed.
+    mDocument->SetTrustedTypesReadinessSignal(
+        TrustedTypesReadinessSignal::RanScript);
   }
 
   // 5. If el's from an external file is true, or el's type is "module", then
@@ -3928,8 +3941,6 @@ void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
   aRequest->GetScriptLoadContext()->GetProfilerLabel(profilerLabelString);
 
   CalculateCacheFlag(aRequest);
-
-  MOZ_ASSERT(aRequest->PassedConditionForMemoryCache());
 
   // For cached stencils, there can be already ongoing work for the in-memory
   // cache and the disk cache.
@@ -5542,15 +5553,9 @@ nsresult ScriptLoader::PrepareLoadedRequest(ScriptLoadRequest* aRequest,
       aRequest->SetSourceMapURL(NS_ConvertUTF8toUTF16(sourceMapURL));
     }
 
-    nsCOMPtr<nsIClassifiedChannel> classifiedChannel =
-        do_QueryInterface(aChannel);
-    MOZ_ASSERT(classifiedChannel);
-    if (classifiedChannel &&
-        classifiedChannel->IsThirdPartyTrackingResource()) {
-      net::ClassificationFlags flags{
-          classifiedChannel->GetFirstPartyClassificationFlags(),
-          classifiedChannel->GetThirdPartyClassificationFlags()};
-      aRequest->GetScriptLoadContext()->SetClassificationFlags(flags);
+    if (AntiTrackingUtils::IsThirdPartyTrackingChannel(aChannel)) {
+      aRequest->GetScriptLoadContext()->SetClassificationFlags(
+          AntiTrackingUtils::GetClassificationFlags(aChannel));
     }
   }
 

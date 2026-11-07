@@ -6,12 +6,11 @@ use euclid::{SideOffsets2D, Angle};
 use peek_poke::PeekPoke;
 use std::ops::Not;
 // local imports
-use crate::{font, SnapshotImageKey};
+use crate::SnapshotImageKey;
 use crate::{APZScrollGeneration, HasScrollLinkedEffect, PipelineId, PropertyBinding};
 use crate::serde::{Serialize, Deserialize};
 use crate::color::ColorF;
 use crate::image::ImageKey;
-use crate::key_types::EdgeMask;
 use crate::interning;
 use crate::path::Path;
 use crate::units::*;
@@ -194,7 +193,7 @@ pub enum DisplayItem {
 pub enum DebugDisplayItem {
     Rectangle(RectangleDisplayItem),
     HitTest(HitTestDisplayItem),
-    Text(TextDisplayItem, Vec<font::GlyphInstance>),
+    Text(TextDisplayItem),
     Line(LineDisplayItem),
     Border(BorderDisplayItem),
     BoxShadow(BoxShadowDisplayItem),
@@ -431,22 +430,17 @@ pub enum GlyphShadowMode {
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct TextDisplayItem {
-    pub common: CommonItemProperties,
-    /// The area all the glyphs should be found in. Strictly speaking this isn't
-    /// necessarily needed, but layout engines should already "know" this, and we
-    /// use it cull and size things quickly before glyph layout is done. Currently
-    /// the glyphs *can* be outside these bounds, but that should imply they
-    /// can be cut off.
-    // FIXME: these are currently sometimes ignored to keep some old wrench tests
-    // working, but we should really just fix the tests!
-    pub bounds: LayoutRect,
-    pub font_key: font::FontInstanceKey,
-    pub color: ColorF,
-    pub glyph_options: Option<font::GlyphOptions>,
-    /// Set by the display-list builder's shadow desugaring on the offset copies
-    /// of shadowed text. `None` for ordinary text.
-    pub shadow: GlyphShadowMode,
-} // IMPLICIT: glyphs: Vec<font::GlyphInstance>
+    pub spatial_id: SpatialId,
+    pub clip_chain_id: ClipChainId,
+    /// The run's entry in the builder's interner, which holds the font, colour,
+    /// glyph options, pen positions, shadow mode and raster space. Everything
+    /// about the run other than where it sits reaches the receiver through
+    /// this, including the glyphs, which is the point: an unchanged run then
+    /// costs eight bytes rather than twelve per glyph. `Handle::INVALID` marks
+    /// a fully transparent run captured inside a shadow scope only so its copy
+    /// can be drawn.
+    pub text_run: crate::interning::Handle<crate::interned_prims::TextRunKey>,
+}
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize, PeekPoke)]
 pub struct NormalBorder {
@@ -580,18 +574,33 @@ pub struct NinePatchBorder {
     pub repeat_vertical: RepeatMode,
 }
 
+/// What a caller hands `push_border`. The item records a `BorderKind`.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub enum BorderDetails {
     Normal(NormalBorder),
     NinePatch(NinePatchBorder),
 }
 
+/// What a border item carries: a bare handle whichever kind it is. A
+/// gradient-sourced nine-patch is interned as the gradient it is, and an image
+/// one as an image border; both keys hold the nine-patch descriptor, widths
+/// included. A normal border's key holds its four sides, radii (already
+/// clamped to the border box), inset, AA flag and widths.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, PeekPoke)]
+pub enum BorderKind {
+    Normal(crate::interning::Handle<crate::interned_prims::NormalBorderKey>),
+    NinePatchImage(crate::interning::Handle<crate::interned_prims::ImageBorderKey>),
+    NinePatchLinearGradient(crate::interning::Handle<crate::interned_prims::LinearGradientKey>),
+    NinePatchRadialGradient(crate::interning::Handle<crate::interned_prims::RadialGradientKey>),
+    NinePatchConicGradient(crate::interning::Handle<crate::interned_prims::ConicGradientKey>),
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct BorderDisplayItem {
-    pub common: CommonItemProperties,
-    pub bounds: LayoutRect,
-    pub widths: LayoutSideOffsets,
-    pub details: BorderDetails,
+    pub spatial_id: SpatialId,
+    pub clip_chain_id: ClipChainId,
+    /// The bounds and widths are in the key, whichever kind it is.
+    pub details: BorderKind,
 }
 
 #[repr(C)]
@@ -741,17 +750,15 @@ impl Gradient {
 /// The area
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct GradientDisplayItem {
-    /// NOTE: common.clip_rect is the area the gradient covers
-    pub common: CommonItemProperties,
-    /// The area to tile the gradient over (first tile starts at origin of this rect)
-    // FIXME: this should ideally just be `tile_origin` here, with the clip_rect
-    // defining the bounds of the item. Needs non-trivial backend changes.
-    pub bounds: LayoutRect,
-    /// How big a tile of the of the gradient should be (common case: bounds.size)
-    pub tile_size: LayoutSize,
-    /// The space between tiles of the gradient (common case: 0)
-    pub tile_spacing: LayoutSize,
-    pub gradient: Gradient,
+    pub spatial_id: SpatialId,
+    pub clip_chain_id: ClipChainId,
+    /// The gradient's entry in the builder's interner, which holds the stops,
+    /// the endpoints, the extend mode, the tile stretch ratio and spacing. The
+    /// stops are the point: they were twenty bytes each on every paint. Its
+    /// prim rect is the gradient's local rect, already through
+    /// `optimize_linear_gradient`: simplified, clipped to the clip rect and
+    /// with the tile size folded in.
+    pub gradient: crate::interning::Handle<crate::interned_prims::LinearGradientKey>,
 }
 
 #[repr(C)]
@@ -811,30 +818,22 @@ pub struct ClipChainItem {
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct RadialGradientDisplayItem {
-    pub common: CommonItemProperties,
-    /// The area to tile the gradient over (first tile starts at origin of this rect)
-    // FIXME: this should ideally just be `tile_origin` here, with the clip_rect
-    // defining the bounds of the item. Needs non-trivial backend changes.
-    pub bounds: LayoutRect,
-    pub gradient: RadialGradient,
-    pub tile_size: LayoutSize,
-    pub tile_spacing: LayoutSize,
-    /// Which edges get anti-aliased under a transform. Narrowed by
-    /// `optimize_radial_gradient` where the gradient abuts a solid margin it
-    /// split off; see `RectangleDisplayItem::rect`.
-    pub transformed_aa_edges: EdgeMask,
+    pub spatial_id: SpatialId,
+    pub clip_chain_id: ClipChainId,
+    /// The key's prim rect is the gradient's local rect, already through
+    /// `optimize_radial_gradient`, which is also what emitted the solid margin
+    /// rects that precede this item; its edge mask is narrowed where a margin
+    /// covers an edge.
+    pub gradient: crate::interning::Handle<crate::interned_prims::RadialGradientKey>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct ConicGradientDisplayItem {
-    pub common: CommonItemProperties,
-    /// The area to tile the gradient over (first tile starts at origin of this rect)
-    // FIXME: this should ideally just be `tile_origin` here, with the clip_rect
-    // defining the bounds of the item. Needs non-trivial backend changes.
-    pub bounds: LayoutRect,
-    pub gradient: ConicGradient,
-    pub tile_size: LayoutSize,
-    pub tile_spacing: LayoutSize,
+    pub spatial_id: SpatialId,
+    pub clip_chain_id: ClipChainId,
+    /// The key's prim rect is the gradient's local rect, already clipped by
+    /// `apply_gradient_local_clip`.
+    pub gradient: crate::interning::Handle<crate::interned_prims::ConicGradientKey>,
 }
 
 /// Renders a filtered region of its backdrop
@@ -2486,6 +2485,7 @@ impl_default_for_enums! {
     RepeatMode => Stretch,
     NinePatchBorderSource => Image(ImageKey::default(), ImageRendering::Auto),
     BorderDetails => Normal(NormalBorder::default()),
+    BorderKind => Normal(crate::interning::Handle::INVALID),
     BorderRadiusKind => Uniform,
     BorderStyle => None,
     BoxShadowClipMode => Outset,

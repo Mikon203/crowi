@@ -1764,15 +1764,7 @@ async function doubleTapOn(element, x, y, useTouchpad) {
   await promiseApzFlushedRepaints();
 }
 
-const NativePanHandlerForLinux = {
-  beginPhase: SpecialPowers.DOMWindowUtils.PHASE_BEGIN,
-  updatePhase: SpecialPowers.DOMWindowUtils.PHASE_UPDATE,
-  endPhase: SpecialPowers.DOMWindowUtils.PHASE_END,
-  promiseNativePanEvent: promiseNativeTouchpadPanEventAndWaitForObserver,
-  delta: -50,
-};
-
-const NativePanHandlerForWindows = {
+const DefaultNativePanHandler = {
   beginPhase: SpecialPowers.DOMWindowUtils.PHASE_BEGIN,
   updatePhase: SpecialPowers.DOMWindowUtils.PHASE_UPDATE,
   endPhase: SpecialPowers.DOMWindowUtils.PHASE_END,
@@ -1789,24 +1781,15 @@ const NativePanHandlerForMac = {
   delta: -50,
 };
 
-const NativePanHandlerForHeadless = {
-  beginPhase: SpecialPowers.DOMWindowUtils.PHASE_BEGIN,
-  updatePhase: SpecialPowers.DOMWindowUtils.PHASE_UPDATE,
-  endPhase: SpecialPowers.DOMWindowUtils.PHASE_END,
-  promiseNativePanEvent: promiseNativeTouchpadPanEventAndWaitForObserver,
-  delta: 50,
-};
-
 function getPanHandler() {
   if (SpecialPowers.isHeadless) {
-    return NativePanHandlerForHeadless;
+    return DefaultNativePanHandler;
   }
 
   switch (getPlatform()) {
     case "linux":
-      return NativePanHandlerForLinux;
     case "windows":
-      return NativePanHandlerForWindows;
+      return DefaultNativePanHandler;
     case "mac":
       return NativePanHandlerForMac;
     default:
@@ -1817,9 +1800,10 @@ function getPanHandler() {
 }
 
 // Lazily get `NativePanHandler` to avoid an exception where we don't support
-// native pan events (e.g. Android).
-if (!window.hasOwnProperty("NativePanHandler")) {
-  Object.defineProperty(window, "NativePanHandler", {
+// native pan events (e.g. Android). Define it on `this`, not `window`, so that
+// browser-chrome tests get a getter bound to their own test-scope.
+if (!this.hasOwnProperty("NativePanHandler")) {
+  Object.defineProperty(this, "NativePanHandler", {
     get() {
       return getPanHandler();
     },

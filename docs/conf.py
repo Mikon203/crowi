@@ -86,18 +86,20 @@ mermaid_dark_theme = "redux-dark-color"
 # and dark themes.
 mermaid_init_config = {
     "startOnLoad": False,
-    # Mermaid gives flowchart and state nodes a 120px minimum width and
-    # wrapping width. The docs size nodes to their labels.
-    "themeVariables": {
-        "fontSize": "18px",
-    },
+    # The page font. Mermaid applies this both to the SVG and to the temporary
+    # wrapper it measures the text in; themeVariables.fontFamily would reach
+    # only the SVG, and the text would be laid out in the wrapper's font.
+    "fontFamily": "inherit",
     # useMaxWidth is configured per diagram type; these are the types the tree
-    # uses.
+    # uses. Mermaid gives flowchart and state nodes a 120px minimum width and
+    # wrapping width, and the docs size nodes to their labels.
     "flowchart": {"useMaxWidth": False, "wrappingWidth": 200, "minNodeWidth": 0},
     "sequence": {"useMaxWidth": False},
     "class": {"useMaxWidth": False},
     "state": {"useMaxWidth": False, "wrappingWidth": 200, "minNodeWidth": 0},
-    "gantt": {"useMaxWidth": False},
+    # Without an explicit useWidth, gantt charts take the width of the element
+    # Mermaid renders them in, which is shrink-to-fit.
+    "gantt": {"useMaxWidth": False, "useWidth": 800},
     "er": {"useMaxWidth": False},
 }
 
@@ -117,6 +119,8 @@ jsdoc_config_path = "jsdoc.json"
 templates_path = ["_templates"]
 source_suffix = [".md"]
 autodoc_preserve_defaults = True
+# sphinx_js loads autosummary, whose stub generation only supports .rst.
+autosummary_generate = False
 master_doc = "index"
 project = "Firefox Source Docs"
 
@@ -168,6 +172,7 @@ htmlhelp_basename = "FirefoxTreeDocs"
 moz_project_name = "main"
 
 html_show_copyright = False
+html_copy_source = False
 
 # GitHub integration for "View page source" links
 html_context = {
@@ -193,7 +198,7 @@ def add_github_source_link(app, pagename, templatename, context, doctree):
     """
     from moztreedocs import manager
 
-    if not manager.trees:
+    if not manager.trees or pagename not in app.env.all_docs:
         return
 
     source_suffix = context.get("page_source_suffix", "")
@@ -296,11 +301,14 @@ def setup(app):
     app.connect("env-before-read-docs", freeze_gc)
     app.connect("write-started", freeze_gc)
     # sphinx-js does not declare it, but it only reads the jsdoc analysis that
-    # runs once before the sources are read.
-    app.extensions["sphinx_js"].parallel_read_safe = True
-    app.extensions["sphinx_js"].parallel_write_safe = True
+    # runs once before the sources are read. `mach doc --no-autodoc` doesn't
+    # load it.
+    if sphinx_js := app.extensions.get("sphinx_js"):
+        sphinx_js.parallel_read_safe = True
+        sphinx_js.parallel_write_safe = True
     app.add_css_file("custom_theme.css")
     app.add_js_file("scrollable_regions.js")
+    app.add_js_file("mermaid_fixups.js")
     app.connect("html-page-context", install_sphinx_design)
     app.connect("html-page-context", add_github_source_link)
     app.connect("doctree-read", reattach_nested_rst_nodes)

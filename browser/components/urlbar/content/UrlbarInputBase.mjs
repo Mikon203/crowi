@@ -230,9 +230,9 @@ ${
            popover="manual"
            role="group">
         <div class="urlbarView-background"/>
+        <panel-list class="urlbarView-result-menu" accesskey-conflicts-bug="2073892"></panel-list>
         <div class="urlbarView-results"
              role="listbox"/>
-        <panel-list class="urlbarView-result-menu" accesskey-conflicts-bug="2073892"></panel-list>
         <moz-urlbar-slot name="search-one-offs" />
    </div>`;
   }
@@ -253,9 +253,9 @@ ${
   }
 
   /**
-   * @type {DocumentFragment=}
-   *
    * The cached fragment.
+   *
+   * @type {DocumentFragment=}
    */
   static #fragment;
 
@@ -3053,12 +3053,12 @@ ${
    */
 
   /**
-   * @type {SearchModesObject|undefined}
-   *
    * The (lazily initialized) search mode object for the searchbar.
    * This is needed because the searchbar has one search mode per window that
    * shouldn't change when switching tabs. For the address bar, the search mode
    * is stored per browser in #browserStates and this is always undefined.
+   *
+   * @type {SearchModesObject|undefined}
    */
   #searchbarSearchModes;
 
@@ -3180,11 +3180,11 @@ ${
   }
 
   /**
-   * @type {Promise<void>}
-   *
    * Resolves once the search mode last assigned through the `searchMode`
    * setter has been applied. Applying it resolves the engine, which may have
    * to wait for the engine store.
+   *
+   * @type {Promise<void>}
    */
   #searchModeApplied = Promise.resolve();
 
@@ -5958,6 +5958,10 @@ ${
         event.keyCode == KeyEvent.DOM_VK_LEFT;
 
       this._toggleActionOverride(event);
+    } else if (event.keyCode == KeyEvent.DOM_VK_RETURN) {
+      // Ignore repeated Enter, so holding it loads only once.
+      event.preventDefault();
+      return;
     }
 
     // Due to event deferring, it's possible preventDefault() won't be invoked

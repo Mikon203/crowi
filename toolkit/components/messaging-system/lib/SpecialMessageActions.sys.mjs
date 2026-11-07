@@ -73,6 +73,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SessionStore:
     "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs",
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+  SharingUtils: "moz-src:///browser/components/sharing/SharingUtils.sys.mjs",
+  // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   Spotlight: "resource:///modules/asrouter/Spotlight.sys.mjs",
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   TaskbarTabs: "moz-src:///browser/components/taskbartabs/TaskbarTabs.sys.mjs",
@@ -427,6 +429,7 @@ export const SpecialMessageActions = {
       "browser.migrate.content-modal.about-welcome-behavior",
       "browser.migrate.content-modal.import-all.enabled",
       "browser.migrate.preferences-entrypoint.enabled",
+      "browser.ml.chat.provider",
       "browser.shell.checkDefaultBrowser",
       "browser.shell.setDefaultGuidanceNotifications",
       "browser.startup.homepage",
@@ -922,6 +925,17 @@ export const SpecialMessageActions = {
           }
         );
         break;
+      case "SHOW_QR_CODE": {
+        const { gBrowser } = window.top;
+        await lazy.SharingUtils.showQRCodePanel(
+          window.top,
+          gBrowser.getTabForBrowser(browser)
+            ? browser
+            : gBrowser.selectedBrowser,
+          Services.urlFormatter.formatURL(action.data.args)
+        );
+        break;
+      }
       case "OPEN_ABOUT_PAGE": {
         let aboutPageURL = new URL(`about:${action.data.args}`);
         if (!ALLOWED_ABOUT_PAGES.has(aboutPageURL.pathname)) {
@@ -955,6 +969,27 @@ export const SpecialMessageActions = {
           }
         );
         break;
+      case "OPEN_SUPPORT_PAGE": {
+        let baseURL = new URL(
+          Services.urlFormatter.formatURLPref("app.support.baseURL")
+        );
+        let supportPageURL = new URL(action.data.args, baseURL);
+        // The page must resolve to a URL under the support base URL.
+        if (
+          supportPageURL.origin !== baseURL.origin ||
+          !supportPageURL.pathname.startsWith(baseURL.pathname)
+        ) {
+          throw new Error(
+            `SpecialMessageActions: OPEN_SUPPORT_PAGE disallows ${action.data.args}`
+          );
+        }
+        window.openLinkIn(supportPageURL.href, action.data.where || "current", {
+          private: false,
+          triggeringPrincipal:
+            Services.scriptSecurityManager.createNullPrincipal({}),
+        });
+        break;
+      }
       case "OPEN_APPLICATIONS_MENU":
         lazy.UITour.showMenu(window, action.data.args);
         break;
@@ -1109,6 +1144,14 @@ export const SpecialMessageActions = {
       case "OPEN_SMARTWINDOW_MONITOR_CREATE":
         lazy.AIWindowUI.showMonitorCreateForm(window);
         break;
+      case "SUBMIT_SMARTWINDOW_PROMPT": {
+        const { prompt, source = "fxms" } = action.data;
+        await lazy.AIWindowUI.submitToSidebar(window, prompt, {
+          submitType: source,
+          aitabSource: source,
+        });
+        break;
+      }
       case "OPEN_PROTECTION_PANEL": {
         let { gProtectionsHandler } = window;
         gProtectionsHandler.showProtectionsPopup({});
@@ -1182,6 +1225,9 @@ export const SpecialMessageActions = {
         break;
       case "SET_TERMS_OF_USE_INTERACTED":
         Services.obs.notifyObservers(null, "termsofuse:interacted");
+        break;
+      case "ACCEPT_SMARTWINDOW_TOU":
+        Services.obs.notifyObservers(null, "smartwindow-tou-accepted");
         break;
       case "CREATE_NEW_SELECTABLE_PROFILE":
         this.createAndOpenProfile();

@@ -783,8 +783,8 @@ pref("browser.urlbar.contextualSearch.enabled", true);
 pref("browser.urlbar.addons.featureGate", false);
 
 // Feature gate pref for semanticHistory
-#if defined(EARLY_BETA_OR_EARLIER) || defined(MOZ_DEV_EDITION)
-pref("places.semanticHistory.featureGate", false);
+#ifdef NIGHTLY_BUILD
+pref("places.semanticHistory.featureGate", true);
 #else
 pref("places.semanticHistory.featureGate", false);
 #endif
@@ -1003,10 +1003,6 @@ pref("browser.search.serpEventTelemetryCategorization.enabled", false);
 // experiment info (and not actual SERP categorizations) at startup.
 pref("browser.search.serpMetricsRecordedCounter", 0);
 
-// Search Bar removal from the toolbar for users who haven’t used it in 120
-// days
-pref("browser.search.widget.removeAfterDaysUnused", 120);
-
 // Feature gate for searchbar based on urlbar code.
 pref("browser.search.widget.new", true);
 
@@ -1202,10 +1198,11 @@ pref("browser.tabs.hoverPreview.showThumbnails", true);
 pref("browser.tabs.groups.enabled", true);
 pref("browser.tabs.groups.hoverPreview.enabled", true);
 pref("browser.tabs.groups.alternateMenu", true);
-// Bug 2052293: temporarily disabled while tab groups move away from the list all tabs menu.
-pref("browser.tabs.groups.onboardingCallouts.enabled", false);
 // Number of times the "Tab group saved" confirmation hint has been shown
 pref("browser.tabs.groups.saveHintShownCount", 0);
+// Whether the hint pointing to the application menu has been shown after
+// removing the Tab Groups button
+pref("browser.tabs.groups.removedHintShown", false);
 
 pref("browser.tabs.groups.smart.enabled", false);
 
@@ -1680,6 +1677,8 @@ pref("browser.places.speculativeConnect.enabled", true);
 // Limit query results in the native macOS menu. Set to 0 to disable the limit.
 // Restart for changes to fully apply to cached queries.
 pref("browser.places.nativeMenu.maxResults", 100);
+// Limit entries in each native bookmark folder menu. Set to 0 to disable.
+pref("browser.places.nativeMenu.maxFolderResults", 500);
 #endif
 
 // if true, use full page zoom instead of text zoom
@@ -2138,14 +2137,14 @@ pref("browser.newtabpage.activity-stream.discoverystream.newSponsoredLabel.enabl
 pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,8,13,17,20");
 
 // For both spoc and tiles, count corresponds to the matching placement. So the first placement in an array corresponds to the first count.
-pref("browser.newtabpage.activity-stream.discoverystream.placements.spocs", "newtab_stories_1, newtab_stories_2, newtab_stories_3, newtab_stories_4, newtab_stories_5, newtab_stories_6");
-pref("browser.newtabpage.activity-stream.discoverystream.placements.spocs.counts", "1,1,1,1,1,1");
-pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs", "newtab_stories_1, newtab_stories_2, newtab_stories_3, newtab_stories_4, newtab_stories_5, newtab_stories_6");
-pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs.counts", "1, 1, 1, 1, 1, 1");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.spocs", "newtab_stories_1, newtab_stories_2, newtab_stories_3, newtab_stories_4, newtab_stories_5, newtab_stories_6, newtab_stories_7, newtab_stories_8, newtab_stories_9, newtab_stories_10, newtab_stories_11, newtab_stories_12, newtab_billboard");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.spocs.counts", "1,1,1,1,1,1,1,1,1,1,1,1,1");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs", "newtab_stories_1, newtab_stories_2, newtab_stories_3, newtab_stories_4, newtab_stories_5, newtab_stories_6, newtab_stories_7, newtab_stories_8, newtab_stories_9, newtab_stories_10, newtab_stories_11, newtab_stories_12");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs.counts", "1,1,1,1,1,1,1,1,1,1,1,1");
 pref("browser.newtabpage.activity-stream.discoverystream.placements.tiles", "newtab_tile_1, newtab_tile_2, newtab_tile_3");
 pref("browser.newtabpage.activity-stream.discoverystream.placements.tiles.counts", "1, 1, 1");
-pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualBanners", "");
-pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualBanners.counts", "");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualBanners", "newtab_billboard");
+pref("browser.newtabpage.activity-stream.discoverystream.placements.contextualBanners.counts", "1");
 
 // This is a 0-based index, for consistency with the other position CSVs,
 // but Contile positions are a 1-based index, so we end up adding 1 to these before using them.
@@ -2436,8 +2435,10 @@ pref("browser.ml.pageAssist.enabled", false);
 pref("browser.smartwindow.enabled", false);
 // Default endpoint for preset models
 pref("browser.smartwindow.endpoint", "https://mlpa-prod-prod-mozilla.freetls.fastly.net/v1");
-pref("browser.smartwindow.memories.generateFromHistory", false);
-pref("browser.smartwindow.memories.generateFromConversation", false);
+pref("browser.smartwindow.auth.impl", "fxa");
+pref("browser.smartwindow.auth.guest.mode", "fetch");
+pref("browser.smartwindow.memories.generateFromHistory", true);
+pref("browser.smartwindow.memories.generateFromConversation", true);
 pref("browser.smartwindow.memories.hasSeenMemories", false);
 pref("browser.smartwindow.memoriesLogLevel", "Warn");
 // Gates resume-activity ("pick up where you left off") starter generation.
@@ -2446,13 +2447,12 @@ pref("browser.smartwindow.resumeActivity.enabled", false);
 pref("browser.smartwindow.resumeCards.enabled", false);
 pref("browser.smartwindow.firstrun.autoAdvanceMS", 3000);
 pref("browser.smartwindow.firstrun.hasCompleted", false);
+pref("browser.smartwindow.firstrun.singlePageWithAutoModel", false);
 pref("browser.smartwindow.showThemesNotice", true);
 pref("browser.smartwindow.sidebar.openByDefault", true);
 pref("browser.smartwindow.isDefaultWindow", false);
 pref("browser.smartwindow.firstrun.explainerURL", "https://www.firefox.com/smart-window/?v=product");
 pref("places.semanticHistory.smartwindow.featureGate", false);
-// TODO Bug 2053495: remove with mistral release pref
-pref("browser.smartwindow.mistralRelease", true);
 
 // Semantic distance threshold for Smart Window history search only.
 pref("places.semanticHistory.smartwindow.distanceThreshold", "0.6");
@@ -2486,6 +2486,9 @@ pref("browser.smartwindow.aitab.menus", false);
 #else
 pref("browser.smartwindow.aitab.menus", false);
 #endif
+
+// Off until the model's use of manage_tabs' include_chat_tab is evaluated.
+pref("browser.smartwindow.manageTabs.includeChatTab", false);
 
 // Smart Window Agent
 pref("browser.smartwindow.agent.enabled", false);
@@ -2532,6 +2535,10 @@ pref("browser.smartwindow.smartbarMentions.loglevel", "Error");
 pref("browser.smartwindow.telemetryLogLevel", "Error");
 
 pref("browser.widgets.generated.enabled", false);
+pref(
+  "sidebar.newTool.migration.widgets",
+  '{"visibilityPref":"browser.widgets.generated.enabled"}'
+);
 pref("browser.widgets.generated.loglevel", "Warn");
 pref("browser.widgets.generated.endpoint", "");
 pref("browser.widgets.generated.apiKey", "");
@@ -2990,6 +2997,9 @@ pref("browser.migrate.canary.enabled", true);
 pref("browser.migrate.chrome.enabled", true);
 // See comments in bug 1340115 on how we got to this number.
 pref("browser.migrate.chrome.history.limit", 2000);
+// Number of recent visits to import per URL from Chrome history, capped at
+// places.frecency.pages.numSampledVisits.
+pref("browser.migrate.chrome.history.visit.limit", 5);
 pref("browser.migrate.chrome.payment_methods.enabled", true);
 pref("browser.migrate.chrome.extensions.enabled", true);
 pref("browser.migrate.chrome.get_permissions.enabled", true);
@@ -3618,7 +3628,11 @@ pref("devtools.debugger.features.async-captured-stacks", true);
 pref("devtools.debugger.features.async-live-stacks", false);
 
 // This supports showing stylesheet sources in the debugger
-pref("devtools.debugger.features.stylesheets-in-debugger", false);
+#if defined(NIGHTLY_BUILD)
+  pref("devtools.debugger.features.stylesheets-in-debugger", true);
+#else
+  pref("devtools.debugger.features.stylesheets-in-debugger", false); 
+#endif
 
 // When debugging a website, this pref controls if extension content scripts applied
 // to the currently debugged page should be shown in the Debugger Source Tree
