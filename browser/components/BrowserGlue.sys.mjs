@@ -746,6 +746,91 @@ BrowserGlue.prototype = {
     );
 
     this._firstWindowTelemetry(aWindow);
+    this._maybeShowCrowiFirstRunSetup(aWindow);
+  },
+
+  /**
+   * Show Crowi's first-run choices once for newly-created profiles.
+   */
+  async _maybeShowCrowiFirstRunSetup(aWindow) {
+    const setupPref = "browser.crowi.firstRunSetupComplete";
+    if (
+      !this._isNewProfile ||
+      Services.prefs.getBoolPref(setupPref, false)
+    ) {
+      return;
+    }
+
+    const [
+      novaTitle,
+      novaMessage,
+      disableNovaLabel,
+      keepNovaLabel,
+      importTitle,
+      importMessage,
+      importLabel,
+      skipImportLabel,
+    ] = await aWindow.document.l10n.formatValues([
+      "crowi-first-run-nova-title",
+      "crowi-first-run-nova-message",
+      "crowi-first-run-nova-disable",
+      "crowi-first-run-nova-keep",
+      "crowi-first-run-import-title",
+      "crowi-first-run-import-message",
+      "crowi-first-run-import",
+      "crowi-first-run-import-skip",
+    ]);
+
+    const buttonFlags =
+      Services.prompt.BUTTON_POS_0 * Services.prompt.BUTTON_TITLE_IS_STRING +
+      Services.prompt.BUTTON_POS_1 * Services.prompt.BUTTON_TITLE_IS_STRING +
+      Services.prompt.BUTTON_POS_0_DEFAULT;
+
+    const ask = async (title, message, acceptLabel, cancelLabel) => {
+      const result = await Services.prompt.asyncConfirmEx(
+        aWindow.browsingContext,
+        Ci.nsIPrompt.MODAL_TYPE_INTERNAL_WINDOW,
+        title,
+        message,
+        buttonFlags,
+        acceptLabel,
+        cancelLabel,
+        null,
+        null,
+        {}
+      );
+      return result.get("buttonNumClicked") == 0;
+    };
+
+    if (Services.prefs.getBoolPref("browser.nova.enabled", true)) {
+      const disableNova = await ask(
+        novaTitle,
+        novaMessage,
+        disableNovaLabel,
+        keepNovaLabel
+      );
+      if (disableNova) {
+        Services.prefs.setBoolPref("browser.nova.enabled", false);
+      }
+    }
+
+    const shouldImport = await ask(
+      importTitle,
+      importMessage,
+      importLabel,
+      skipImportLabel
+    );
+
+    // Mark setup complete before opening the migration UI, so dismissing or
+    // completing the wizard never causes the first-run prompts to return.
+    Services.prefs.setBoolPref(setupPref, true);
+
+    if (shouldImport) {
+      await lazy.MigrationUtils.showMigrationWizard(aWindow, {
+        entrypoint: lazy.MigrationUtils.MIGRATION_ENTRYPOINTS.FIRSTRUN,
+        tabModal: true,
+      });
+    }
   },
 
   /**
