@@ -386,15 +386,21 @@ export class IPProtectionPanel {
     );
   }
 
-  async isDefaultBrowser() {
-    return lazy.ShellService.isDefaultBrowserAsync();
+  /**
+   * Whether the user may use locked egress locations. Doesn't depend on any
+   * window, so it is shared with IPPAutoActivation.
+   *
+   * @returns {Promise<boolean>}
+   */
+  static async isPremium() {
+    let isPremium =
+      lazy.IPProtectionService.authProvider.hasUpgraded ||
+      (await lazy.ShellService.isDefaultBrowserAsync());
+    return isPremium;
   }
 
   async isPremium() {
-    let isPremium =
-      lazy.IPProtectionService.authProvider.hasUpgraded ||
-      (await this.isDefaultBrowser());
-    return isPremium;
+    return IPProtectionPanel.isPremium();
   }
 
   /**
@@ -534,13 +540,9 @@ export class IPProtectionPanel {
     const inPrivateBrowsing =
       !!win && lazy.PrivateBrowsingUtils.isWindowPrivate(win);
 
-    let country = this.state.location;
-    if (!(await this.isPremium()) && country) {
-      const location = lazy.IPProtectionServerlist.getLocation(country);
-      if (location?.country.locked) {
-        country = undefined;
-      }
-    }
+    const country = await lazy.IPProtectionServerlist.resolveEgressCountry(() =>
+      this.isPremium()
+    );
 
     // A connection kept up for the always-on sites is widened, not restarted.
     if (lazy.IPPProxyManager.state === lazy.IPPProxyStates.ACTIVE) {
@@ -1088,12 +1090,20 @@ export class IPProtectionPanel {
   #addProgressListener() {
     if (this.gBrowser) {
       this.gBrowser.addTabsProgressListener(this.progressListener);
+      this.gBrowser.tabContainer.addEventListener(
+        "TabSelect",
+        this.handleEvent
+      );
     }
   }
 
   #removeProgressListener() {
     if (this.gBrowser) {
       this.gBrowser.removeTabsProgressListener(this.progressListener);
+      this.gBrowser.tabContainer.removeEventListener(
+        "TabSelect",
+        this.handleEvent
+      );
     }
   }
 
@@ -1159,7 +1169,10 @@ export class IPProtectionPanel {
     if (!principal || !lazy.IPPSiteRuleManager.canManage(principal)) {
       return null;
     }
-    const rule = lazy.IPPSiteRuleManager.getRule(principal);
+    const rule = lazy.IPPSiteRuleManager.getRule(
+      principal,
+      this.gBrowser.selectedBrowser.browserId
+    );
     const isExclusion = rule === lazy.IPPPrincipalRules.EXCLUDED;
     const isInclusion = rule === lazy.IPPPrincipalRules.INCLUDED;
     const hasSiteRule = rule !== lazy.IPPPrincipalRules.DEFAULT;
@@ -1321,7 +1334,10 @@ export class IPProtectionPanel {
         showSiteInclusionPrompt:
           this.state.showSiteInclusionPrompt && !errorType && !paused,
       });
-    } else if (event.type == "SiteRuleManager:RuleChanged") {
+    } else if (
+      event.type == "SiteRuleManager:RuleChanged" ||
+      event.type == "TabSelect"
+    ) {
       this.#updateSiteData();
       this.#updateProxyError();
     } else if (event.type == "IPProtectionServerlist:ListChanged") {

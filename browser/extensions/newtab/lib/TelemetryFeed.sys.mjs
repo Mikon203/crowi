@@ -805,7 +805,7 @@ export class TelemetryFeed {
    * @param {*} pingDict Input dictionary
    * @param {boolean} isSponsored Whether this is a sponsored (ad) item.
    *   Sponsored items retain the corpus/recommendation identifiers that
-   *   organic items drop, but tile_id is redacted in both cases.
+   *   organic items drop.
    * @returns {*} Redacted dictionary
    */
   redactNewTabPing(pingDict, isSponsored = false) {
@@ -819,12 +819,6 @@ export class TelemetryFeed {
         section,
         // eslint-disable-next-line no-unused-vars
         selected_topics,
-        // @backward-compat { version 159 }
-        // We can remove tile_id from this list once 159 hits release, since at that point,
-        // tile_id will have been removed from the newtab ping within metrics.yaml, and there
-        // will no longer be a chance of it accidentally slipping through extra_keys.
-        // eslint-disable-next-line no-unused-vars
-        tile_id,
         // eslint-disable-next-line no-unused-vars
         topic,
         // eslint-disable-next-line no-unused-vars
@@ -842,12 +836,6 @@ export class TelemetryFeed {
       section,
       // eslint-disable-next-line no-unused-vars
       selected_topics,
-      // @backward-compat { version 159 }
-      // We can remove tile_id from this list once 159 hits release, since at that point,
-      // tile_id will have been removed from the newtab ping within metrics.yaml, and there
-      // will no longer be a chance of it accidentally slipping through extra_keys.
-      // eslint-disable-next-line no-unused-vars
-      tile_id,
       // eslint-disable-next-line no-unused-vars
       topic,
       // eslint-disable-next-line no-unused-vars
@@ -2567,6 +2555,9 @@ export class TelemetryFeed {
       case at.WIDGETS_ERROR:
         this.handleUnifiedWidgetError(action);
         break;
+      case at.WIDGETS_READY:
+        this.handleUnifiedWidgetReady(action);
+        break;
       case at.PROMO_CARD_CLICK:
       case at.PROMO_CARD_DISMISS:
       case at.PROMO_CARD_IMPRESSION:
@@ -2837,6 +2828,30 @@ export class TelemetryFeed {
       }
 
       Glean.newtab.widgetsError.record(payload);
+    }
+  }
+
+  handleUnifiedWidgetReady(action) {
+    const session = this.sessions.get(au.getPortIdOfSender(action));
+    if (session) {
+      const payload = {
+        newtab_visit_id: session.session_id,
+        widget_name: action.data.widget_name,
+      };
+
+      if (action.data.widget_size) {
+        payload.widget_size = action.data.widget_size;
+      }
+
+      if (typeof action.data.widget_location === "string") {
+        payload.widget_location = action.data.widget_location;
+      }
+
+      if (action.data.widget_variant) {
+        payload.widget_variant = action.data.widget_variant;
+      }
+
+      Glean.newtab.widgetsReady.record(payload);
     }
   }
 

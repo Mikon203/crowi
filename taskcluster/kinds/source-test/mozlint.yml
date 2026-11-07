@@ -147,6 +147,10 @@ uri-setspec:
 
 eslint:
     description: JS lint check
+    # Review bot waits for every lint, and this one finishes last more often
+    # than any other. It parallelizes well, so a 30 core worker shortens the end
+    # to end time.
+    worker-type: b-linux-docker-large-amd
     treeherder:
         symbol: js(ES)
     run:
@@ -282,7 +286,6 @@ typescript:
             - 'browser/components/urlbar/**/*.ts'
             - 'browser/extensions/newtab/**/*.*js'
             - 'browser/extensions/newtab/**/*.ts'
-            - 'browser/extensions/newtab/tsconfig.json'
             - 'devtools/client/settings/**/*.*js'
             - 'devtools/client/settings/**/*.ts'
             - 'toolkit/components/extensions/**/*.*js'
@@ -292,6 +295,7 @@ typescript:
             - 'toolkit/components/search/**/*.*js'
             - 'toolkit/components/search/**/*.ts'
             # Support Files
+            - '**/tsconfig.json'
             - 'tools/@types/**'
             - 'tools/lint/typescript.yml'
             - 'tools/lint/typescript/**'

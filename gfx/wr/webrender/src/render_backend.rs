@@ -14,7 +14,7 @@ use api::{IdNamespace, PipelineId, RenderBackendId, RenderNotifier, SampledScrol
 use api::{NotificationRequest, Checkpoint, QualitySettings};
 use api::{FramePublishId, RenderReasons};
 use api::units::*;
-use api::channel::{single_msg_channel, Sender, Receiver};
+use api::channel::{single_msg_channel, Sender, Receiver, SyncSender};
 use crate::bump_allocator::ChunkPool;
 use crate::AsyncPropertySampler;
 #[cfg(feature = "replay")]
@@ -355,35 +355,29 @@ impl DataStores {
             PrimitiveKind::Image { handle } => {
                 &dl_stores.images[handle].common
             }
-            PrimitiveKind::ImageBorder { data_handle, .. } => {
-                let prim_data = &self.image_border[data_handle];
-                &prim_data.common
+            PrimitiveKind::ImageBorder { handle } => {
+                &dl_stores.image_borders[handle].common
             }
             PrimitiveKind::LineDecoration { handle } => {
                 &dl_stores.line_decorations[handle].common
             }
-            PrimitiveKind::LinearGradient { data_handle, .. } => {
-                let prim_data = &self.linear_grad[data_handle];
-                &prim_data.common
+            PrimitiveKind::LinearGradient { handle } => {
+                &dl_stores.linear_gradients[handle].common
             }
-            PrimitiveKind::NormalBorder { data_handle, .. } => {
-                let prim_data = &self.normal_border[data_handle];
-                &prim_data.common
+            PrimitiveKind::NormalBorder { handle } => {
+                &dl_stores.normal_borders[handle].common
             }
             PrimitiveKind::Picture { .. } => {
                 panic!("BUG: picture prims don't have common data!");
             }
-            PrimitiveKind::RadialGradient { data_handle, .. } => {
-                let prim_data = &self.radial_grad[data_handle];
-                &prim_data.common
+            PrimitiveKind::RadialGradient { handle } => {
+                &dl_stores.radial_gradients[handle].common
             }
-            PrimitiveKind::ConicGradient { data_handle, .. } => {
-                let prim_data = &self.conic_grad[data_handle];
-                &prim_data.common
+            PrimitiveKind::ConicGradient { handle } => {
+                &dl_stores.conic_gradients[handle].common
             }
-            PrimitiveKind::TextRun { data_handle, .. }  => {
-                let prim_data = &self.text_run[data_handle];
-                &prim_data.common
+            PrimitiveKind::TextRun { handle } => {
+                &dl_stores.text_runs[handle].common
             }
             PrimitiveKind::YuvImage { handle } => {
                 &dl_stores.yuv_images[handle].common
@@ -1258,7 +1252,7 @@ impl RenderBackend {
     fn process_transaction(
         &mut self,
         mut txns: Vec<Box<BuiltTransaction>>,
-        mut result_tx: Option<Sender<SceneSwapResult>>,
+        mut result_tx: Option<SyncSender<SceneSwapResult>>,
         frame_counter: &mut u32,
     ) -> bool {
         self.maybe_force_nop_documents(
@@ -2341,7 +2335,7 @@ impl RenderBackend {
         self.scene_tx.send(msg).unwrap();
     }
 
-    fn report_memory(&mut self, tx: Sender<Box<MemoryReport>>) {
+    fn report_memory(&mut self, tx: SyncSender<Box<MemoryReport>>) {
         let mut report = Box::new(MemoryReport::default());
         let ops = self.size_of_ops.as_mut().unwrap();
         let op = ops.size_of_op;
@@ -2771,7 +2765,6 @@ impl RenderBackend {
                 scene,
                 view: view.scene.clone(),
                 config: win.frame_config.clone(),
-                fonts: win.resource_cache.get_fonts(),
                 build_frame,
                 interners,
                 spatial_tree: scene_spatial_tree,
