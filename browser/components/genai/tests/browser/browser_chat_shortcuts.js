@@ -36,7 +36,22 @@ add_task(async function test_no_shortcuts() {
       "No shortcuts found"
     );
   });
+
+  await SpecialPowers.popPrefEnv();
 });
+
+function visibleBox(popup) {
+  const outer = popup.getOuterScreenRect();
+  const client = popup.getBoundingClientRect();
+  const content = popup.shadowRoot
+    .querySelector("[part=content]")
+    .getBoundingClientRect();
+  return {
+    top: outer.y + content.top - client.top,
+    bottom: outer.y + content.bottom - client.top,
+    left: outer.x + content.left - client.left,
+  };
+}
 
 async function showSelectionMenu(browser, options) {
   const panel = document.getElementById("selection-shortcut-action-panel");
@@ -176,27 +191,30 @@ add_task(async function test_no_menu_when_nothing_available() {
   const spy = sinon.spy(GenAI, "handleShortcutsMessage");
   const panel = document.getElementById("selection-shortcut-action-panel");
 
-  // "failed" rather than the other statuses because it is the one that makes
-  // the default engine getters throw.
-  SearchService.forceInitializationStatusForTests("failed");
   try {
     await BrowserTestUtils.withNewTab("data:text/plain,hi", async browser => {
-      await selectAllAndMouseUp(browser);
-      await TestUtils.waitForCondition(
-        () => spy.called,
-        "Actor offered shortcuts to the parent"
-      );
+      // "failed" rather than the other statuses because it is the one that
+      // makes the default engine getters throw.
+      SearchService.forceInitializationStatusForTests("failed");
+      try {
+        await selectAllAndMouseUp(browser);
+        await TestUtils.waitForCondition(
+          () => spy.called,
+          "Actor offered shortcuts to the parent"
+        );
 
-      // openPopup() sets state synchronously, while the panelopen attribute
-      // only lands on popupshown, too late for this assertion.
-      Assert.equal(
-        panel.state,
-        "closed",
-        "Menu stays closed with neither chatbot nor search available"
-      );
+        // openPopup() sets state synchronously, while the panelopen attribute
+        // only lands on popupshown, too late for this assertion.
+        Assert.equal(
+          panel.state,
+          "closed",
+          "Menu stays closed with neither chatbot nor search available"
+        );
+      } finally {
+        SearchService.forceInitializationStatusForTests("success");
+      }
     });
   } finally {
-    SearchService.forceInitializationStatusForTests("success");
     spy.restore();
     await SpecialPowers.popPrefEnv();
   }
@@ -798,30 +816,6 @@ add_task(async function test_ai_action_dropdown() {
       "The caret survives the active-state flip"
     );
 
-    // browser.nova.enabled's default varies by test configuration, so flip
-    // whatever the current value is to force an actual state change. A
-    // -moz-pref() media query re-evaluates asynchronously after the pref
-    // changes, so wait for the style to catch up rather than reading it
-    // right away.
-    const novaEnabled = Services.prefs.getBoolPref("browser.nova.enabled");
-    const borderRadiusBefore = getComputedStyle(background).borderRadius;
-    await SpecialPowers.pushPrefEnv({
-      set: [["browser.nova.enabled", !novaEnabled]],
-    });
-    await TestUtils.waitForCondition(
-      () => getComputedStyle(background).borderRadius !== borderRadiusBefore,
-      "Toggling the nova pref changes the button border radius"
-    );
-    Assert.notEqual(
-      getComputedStyle(background, "::after").backgroundImage,
-      "none",
-      "The caret is still drawn with the nova pref toggled"
-    );
-    await SpecialPowers.popPrefEnv();
-    await TestUtils.waitForCondition(
-      () => getComputedStyle(background).borderRadius === borderRadiusBefore,
-      "The border radius returns to its original value"
-    );
     const panelHidden = BrowserTestUtils.waitForEvent(panel, "popuphidden");
     panel.hide();
     await panelHidden;
@@ -1316,9 +1310,17 @@ add_task(async function test_copy_action() {
       "Confirmation shown after copying"
     );
     Assert.ok(
-      BrowserTestUtils.isHidden(moreActionsButton) &&
-        BrowserTestUtils.isHidden(moreActionsSeparator),
-      "The confirmation replaces the three-dot button and its separator"
+      BrowserTestUtils.isHidden(moreActionsButton),
+      "The confirmation replaces the three-dot button"
+    );
+    Assert.ok(
+      BrowserTestUtils.isVisible(moreActionsSeparator),
+      "The rule stays on the near side of the confirmation"
+    );
+    Assert.lessOrEqual(
+      moreActionsSeparator.getBoundingClientRect().right,
+      confirmation.getBoundingClientRect().left,
+      "The confirmation starts after the rule"
     );
     Assert.notEqual(
       getComputedStyle(confirmation).backgroundColor,
@@ -1665,10 +1667,36 @@ add_task(async function test_more_actions_uncheck_all_turns_menu_off() {
       "No notice with an action left"
     );
 
+    const menuWidth = moreActionsPanel.getBoundingClientRect().width;
     await clickToggle("more-actions-ai-toggle");
     await document.l10n.translateElements([notice]);
     Assert.ok(BrowserTestUtils.isVisible(notice), "The notice is shown");
     Assert.ok(notice.textContent.trim(), "The notice says what will happen");
+    Assert.less(
+      Math.abs(moreActionsPanel.getBoundingClientRect().width - menuWidth),
+      1,
+      "Showing the notice does not widen the menu"
+    );
+    Assert.less(
+      Math.abs(
+        notice.getBoundingClientRect().width -
+          document
+            .getElementById("more-actions-copy-toggle")
+            .getBoundingClientRect().width
+      ),
+      1,
+      "The notice is as wide as the rows rather than widening the menu"
+    );
+    Assert.equal(
+      notice.previousElementSibling.localName,
+      "toolbarseparator",
+      "The notice comes after the separator"
+    );
+    Assert.equal(
+      notice.nextElementSibling.id,
+      "more-actions-manage-settings",
+      "The notice comes just before Manage settings"
+    );
     const chevron = notice.querySelector(".more-actions-notice-chevron");
     Assert.ok(
       chevron && BrowserTestUtils.isVisible(chevron),
@@ -2173,13 +2201,14 @@ add_task(async function test_show_shortcuts() {
 
     SidebarController.hide();
   });
+
+  await SpecialPowers.popPrefEnv();
 });
 
 /**
  * Check that shortcuts shown on second tab
  */
 add_task(async function test_show_shortcuts_second_tab() {
-  // NB: this test runs after test_show_shortcuts, which showed shortcuts
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.ml.chat.shortcuts", true],
@@ -2209,6 +2238,8 @@ add_task(async function test_show_shortcuts_second_tab() {
       sandbox.restore();
     }
   );
+
+  await SpecialPowers.popPrefEnv();
 });
 
 /**
@@ -2217,7 +2248,10 @@ add_task(async function test_show_shortcuts_second_tab() {
 add_task(async function test_show_warning_label() {
   Services.fog.testResetFOG();
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.ml.chat.shortcuts", true]],
+    set: [
+      ["browser.ml.chat.shortcuts", true],
+      ["browser.ml.chat.provider", "http://localhost:8080"],
+    ],
   });
   await BrowserTestUtils.withNewTab(
     "data:text/plain,hi".repeat(1000),
@@ -2291,6 +2325,8 @@ add_task(async function test_show_warning_label() {
       );
     }
   );
+
+  await SpecialPowers.popPrefEnv();
 });
 
 /**
@@ -2398,6 +2434,7 @@ add_task(async function test_input_selection() {
   );
 
   sandbox.restore();
+  await SpecialPowers.popPrefEnv();
 });
 
 /**
@@ -2550,6 +2587,9 @@ add_task(async function test_panel_actions_layout() {
       button.hidden = true;
     }
 
+    await SpecialPowers.pushPrefEnv({ set: MORE_ACTIONS_PREFS });
+    panel.updateActions(panel.selectionData.selection, browser);
+
     // moz-button maps the host aria-label and title onto the inner button, so
     // check the element that actually takes focus rather than the custom
     // element.
@@ -2580,6 +2620,7 @@ add_task(async function test_panel_actions_layout() {
       /^Search .+ for “hi”$/,
       "Search action names the engine and the selection"
     );
+    await SpecialPowers.popPrefEnv();
   });
 
   await SpecialPowers.popPrefEnv();
@@ -2802,19 +2843,219 @@ add_task(async function test_more_actions_menu_layout() {
     Assert.equal(aiToggle.label, "Ask AI", "Chatbot row has a generic name");
 
     Assert.ok(
-      openSpy.calledWith(panel, "after_start"),
+      openSpy.calledWith(
+        panel.shadowRoot.querySelector("[part=content]"),
+        "after_start"
+      ),
       "Menu opens from the start edge of the bar"
     );
     openSpy.restore();
 
-    const menuBody = moreActionsPanel.querySelector(".panel-subview-body");
+    const toggles = [
+      aiToggle,
+      document.getElementById("more-actions-search-toggle"),
+      document.getElementById("more-actions-copy-toggle"),
+    ];
+    const manageSettings = document.getElementById(
+      "more-actions-manage-settings"
+    );
+    await manageSettings.updateComplete;
+
+    const rowInset = parseFloat(getComputedStyle(aiToggle).paddingInlineEnd);
+    Assert.greater(rowInset, 0, "Rows are inset from the menu edge");
+    const menuFontProbe = document.createElement("div");
+    menuFontProbe.style.font = "menu";
+    moreActionsPanel.append(menuFontProbe);
+    const menuFont = getComputedStyle(menuFontProbe);
+    for (const el of [
+      aiToggle,
+      manageSettings,
+      manageSettings.shadowRoot.querySelector("button"),
+      manageSettings.shadowRoot.querySelector(".text"),
+    ]) {
+      Assert.deepEqual(
+        [
+          getComputedStyle(el).fontSize,
+          getComputedStyle(el).fontFamily,
+          getComputedStyle(el).fontWeight,
+        ],
+        [menuFont.fontSize, menuFont.fontFamily, menuFont.fontWeight],
+        `${el.localName} uses the menu font`
+      );
+    }
+    menuFontProbe.remove();
+    for (const toggle of toggles) {
+      Assert.less(
+        Math.abs(
+          toggle.getBoundingClientRect().right -
+            rowInset -
+            toggle.buttonEl.getBoundingClientRect().right
+        ),
+        2,
+        "Toggles sit at the end of their rows"
+      );
+    }
+
+    const manageRect = manageSettings.getBoundingClientRect();
+    for (const toggle of toggles) {
+      Assert.greaterOrEqual(
+        toggle.getBoundingClientRect().height,
+        manageRect.height,
+        "A toggle row is as tall as the Manage settings row"
+      );
+    }
+    for (let i = 1; i < toggles.length; i++) {
+      Assert.less(
+        Math.abs(
+          toggles[i].getBoundingClientRect().top -
+            toggles[i - 1].getBoundingClientRect().bottom
+        ),
+        1,
+        "Toggle rows are stacked with no gap"
+      );
+    }
+    const iconLeft = el =>
+      el.shadowRoot.querySelector("img").getBoundingClientRect().left;
+    for (const toggle of toggles) {
+      await toggle.updateComplete;
+      Assert.less(
+        Math.abs(iconLeft(toggle) - iconLeft(manageSettings)),
+        2,
+        "Row icons line up with the Manage settings icon"
+      );
+    }
     Assert.less(
-      Math.abs(
-        aiToggle.buttonEl.getBoundingClientRect().right -
-          menuBody.getBoundingClientRect().right
-      ),
-      2,
-      "Toggles sit at the end of their rows"
+      Math.abs(manageRect.width - toggles[0].getBoundingClientRect().width),
+      1,
+      "Manage settings spans the width of the toggle rows"
+    );
+
+    for (const row of [...toggles, manageSettings]) {
+      const rowRect = row.getBoundingClientRect();
+      const iconRect = row.shadowRoot
+        .querySelector("img")
+        .getBoundingClientRect();
+      const textRect = row.shadowRoot
+        .querySelector(".text")
+        .getBoundingClientRect();
+      Assert.less(
+        Math.abs(
+          iconRect.left - rowRect.left + iconRect.width / 2 - rowRect.height / 2
+        ),
+        0.5,
+        `${row.id} icon is centred in the circle at the start of the row`
+      );
+      Assert.less(
+        Math.abs(textRect.left - rowRect.left - rowRect.height),
+        0.5,
+        `${row.id} text starts at the edge of that circle`
+      );
+    }
+    for (const toggle of toggles) {
+      const rowRect = toggle.getBoundingClientRect();
+      const switchRect = toggle.buttonEl.getBoundingClientRect();
+      Assert.less(
+        Math.abs(
+          rowRect.right - switchRect.right - (switchRect.top - rowRect.top)
+        ),
+        0.5,
+        `${toggle.id} switch is as far from the end of the row as from its top`
+      );
+    }
+    const switchSpace =
+      toggles[0].buttonEl.getBoundingClientRect().width +
+      toggles[0].getBoundingClientRect().right -
+      toggles[0].buttonEl.getBoundingClientRect().right;
+    Assert.greaterOrEqual(
+      manageRect.right -
+        manageSettings.shadowRoot.querySelector(".text").getBoundingClientRect()
+          .right,
+      switchSpace,
+      "Manage settings leaves room after its text for a switch"
+    );
+
+    const menuContent = contentRect(moreActionsPanel);
+    const barBox = visibleBox(panel);
+    const menuBox = visibleBox(moreActionsPanel);
+    Assert.less(
+      Math.abs(menuBox.top - barBox.bottom - 2),
+      1,
+      "The menu opens just below the bar"
+    );
+    Assert.less(
+      Math.abs(menuBox.left - barBox.left),
+      1,
+      "The menu lines up with the start of the bar"
+    );
+    Assert.lessOrEqual(
+      menuContent.height -
+        (manageRect.bottom - toggles[0].getBoundingClientRect().top),
+      20,
+      "Little padding sits above the first row and below the last"
+    );
+    Assert.lessOrEqual(
+      menuContent.width - toggles[0].getBoundingClientRect().width,
+      20,
+      "Little padding sits beside the rows"
+    );
+
+    const copyToggle = toggles[2];
+    EventUtils.synthesizeMouseAtCenter(
+      copyToggle,
+      { type: "mousemove" },
+      window
+    );
+    await TestUtils.waitForCondition(
+      () => getComputedStyle(copyToggle).backgroundColor != "rgba(0, 0, 0, 0)",
+      "A toggle row is highlighted on hover"
+    );
+    const copyPref = "browser.highlightToSearch.copy.enabled";
+    await copyToggle.updateComplete;
+    const labelRect = copyToggle.labelEl.getBoundingClientRect();
+    const switchRect = copyToggle.buttonEl.getBoundingClientRect();
+    const rowRect = copyToggle.getBoundingClientRect();
+    const gapStart = Math.min(labelRect.right, switchRect.right);
+    const gapEnd = Math.max(labelRect.left, switchRect.left);
+    const gapTop = Math.max(labelRect.top, switchRect.top);
+    const gapBottom = Math.min(labelRect.bottom, switchRect.bottom);
+    Assert.greater(gapEnd, gapStart, "The label and switch have a gap");
+    Assert.greater(
+      gapBottom,
+      gapTop,
+      "The label and switch overlap vertically"
+    );
+    AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
+    EventUtils.synthesizeMouse(
+      copyToggle,
+      (gapStart + gapEnd) / 2 - rowRect.left,
+      (gapTop + gapBottom) / 2 - rowRect.top,
+      {},
+      window
+    );
+    AccessibilityUtils.resetEnv();
+    await TestUtils.waitForCondition(
+      () => !Services.prefs.getBoolPref(copyPref),
+      "Clicking between the label and switch toggles the row"
+    );
+    await copyToggle.updateComplete;
+    EventUtils.synthesizeMouseAtCenter(copyToggle.buttonEl, {}, window);
+    await TestUtils.waitForCondition(
+      () => Services.prefs.getBoolPref(copyPref),
+      "Clicking the switch restores the preference"
+    );
+    await copyToggle.updateComplete;
+    AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
+    EventUtils.synthesizeMouse(copyToggle, 2, 10, {}, window);
+    AccessibilityUtils.resetEnv();
+    await TestUtils.waitForCondition(
+      () => !Services.prefs.getBoolPref(copyPref),
+      "Clicking the padding of a row toggles it"
+    );
+    await copyToggle.updateComplete;
+    EventUtils.synthesizeMouseAtCenter(copyToggle.buttonEl, {}, window);
+    await TestUtils.waitForCondition(
+      () => Services.prefs.getBoolPref(copyPref),
+      "Clicking the switch toggles the row once"
     );
 
     for (const [toggle, icon] of [
@@ -2857,6 +3098,30 @@ add_task(async function test_more_actions_menu_layout() {
       document.getElementById("more-actions-button").getBoundingClientRect()
         .left,
       "The rule comes before the three-dot button"
+    );
+
+    const hidden = BrowserTestUtils.waitForEvent(panel, "popuphidden");
+    panel.hide();
+    await hidden;
+  });
+
+  await SpecialPowers.popPrefEnv();
+});
+
+/**
+ * Check that the Ask AI menu opens just below the bar.
+ */
+add_task(async function test_ai_menu_opens_just_below_bar() {
+  await SpecialPowers.pushPrefEnv({ set: MORE_ACTIONS_PREFS });
+
+  await BrowserTestUtils.withNewTab("data:text/plain,hi", async browser => {
+    const panel = await showSelectionMenu(browser);
+    const popup = await openAskDropdown(browser);
+
+    Assert.less(
+      Math.abs(visibleBox(popup).top - visibleBox(panel).bottom - 2),
+      1,
+      "The Ask AI menu opens just below the bar"
     );
 
     const hidden = BrowserTestUtils.waitForEvent(panel, "popuphidden");
@@ -3827,6 +4092,12 @@ add_task(async function test_selection_callout_uses_design_tokens() {
   }
 });
 
+function contentRect(popup) {
+  return popup.shadowRoot
+    .querySelector("[part=content]")
+    .getBoundingClientRect();
+}
+
 async function openAskDropdown(browser) {
   const popup = document.getElementById("chat-shortcuts-options-panel");
   const shown = BrowserTestUtils.waitForEvent(popup, "popupshown");
@@ -4046,4 +4317,127 @@ add_task(async function test_dismissal_unchanged_without_feature_gate() {
     Assert.equal(popup.state, "closed", "A press outside closes both");
   });
   await SpecialPowers.popPrefEnv();
+});
+
+/**
+ * Check the size of the strip, its buttons and the Copied pill.
+ */
+add_task(async function test_strip_sizes() {
+  await SpecialPowers.pushPrefEnv({ set: MORE_ACTIONS_PREFS });
+
+  await BrowserTestUtils.withNewTab("data:text/plain,hi", async browser => {
+    const panel = await showSelectionMenu(browser);
+    const rect = id => document.getElementById(id).getBoundingClientRect();
+
+    Assert.equal(contentRect(panel).height, 42, "The strip is 42px tall");
+    for (const id of [
+      "search-action-button",
+      "copy-action-button",
+      "more-actions-button",
+    ]) {
+      Assert.deepEqual(
+        [rect(id).width, rect(id).height],
+        [36, 36],
+        `${id} is a 36px circle`
+      );
+    }
+    Assert.less(
+      Math.abs(rect("ai-action-button").width - 51),
+      3.5,
+      "The AI action is about a 51px pill, depending on the font size"
+    );
+    Assert.equal(
+      rect("ai-action-button").height,
+      36,
+      "The AI action is 36px tall"
+    );
+    const aiButtonPart = document
+      .getElementById("ai-action-button")
+      .shadowRoot.querySelector("[part=button]");
+    Assert.equal(
+      getComputedStyle(aiButtonPart, "::after").width,
+      getComputedStyle(aiButtonPart, "::after").height,
+      "The arrow is not squeezed narrower than its height"
+    );
+
+    const confirmation = document.getElementById("copy-action-confirmation");
+    EventUtils.synthesizeMouseAtCenter(
+      document.getElementById("copy-action-button"),
+      {},
+      window
+    );
+    await TestUtils.waitForCondition(
+      () => confirmation.hasAttribute("copied"),
+      "Confirmation is shown"
+    );
+    Assert.equal(
+      confirmation.getBoundingClientRect().height,
+      36,
+      "The Copied pill is as tall as the buttons"
+    );
+
+    await hideSelectionMenu(panel);
+  });
+
+  await SpecialPowers.popPrefEnv();
+});
+
+/**
+ * Check the size of the Ask AI dropdown.
+ */
+add_task(async function test_ask_dropdown_sizes() {
+  await SpecialPowers.pushPrefEnv({ set: MORE_ACTIONS_PREFS });
+
+  await BrowserTestUtils.withNewTab("data:text/plain,hi", async browser => {
+    const panel = await showSelectionMenu(browser);
+    const popup = await openAskDropdown(browser);
+
+    const rows = popup.querySelectorAll("toolbarbutton");
+    Assert.greater(rows.length, 0, "The dropdown has prompts");
+    for (const row of rows) {
+      Assert.equal(row.getBoundingClientRect().height, 32, "Rows are 32px");
+    }
+    Assert.greaterOrEqual(
+      contentRect(popup).width,
+      240,
+      "The dropdown is at least 240px wide"
+    );
+
+    await hideSelectionMenu(panel);
+  });
+
+  await SpecialPowers.popPrefEnv();
+});
+
+/**
+ * Check the placeholder of the Ask AI dropdown for a provider with no name.
+ */
+add_task(async function test_ask_dropdown_placeholder_without_provider_name() {
+  for (const [gate, expected] of [
+    [true, "Ask AI…"],
+    [false, "Ask AI chatbot…"],
+  ]) {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ...MORE_ACTIONS_PREFS,
+        ["browser.ml.chat.provider", "https://unknown.example"],
+        ["browser.highlightToSearch.featureGate", gate],
+      ],
+    });
+
+    await BrowserTestUtils.withNewTab("data:text/plain,hi", async browser => {
+      const panel = await showSelectionMenu(browser);
+      const popup = await openAskDropdown(browser);
+      const textarea = popup.querySelector("textarea");
+      await document.l10n.translateElements([textarea]);
+      Assert.equal(
+        textarea.placeholder,
+        expected,
+        `The placeholder reads "${expected}" with the gate ${gate ? "on" : "off"}`
+      );
+      await hideSelectionMenu(panel);
+    });
+
+    await SpecialPowers.popPrefEnv();
+  }
 });

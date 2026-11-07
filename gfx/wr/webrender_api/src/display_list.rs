@@ -24,17 +24,20 @@ use crate::color::{ColorF, ColorU};
 use crate::font::{FontInstanceKey, GlyphInstance, GlyphOptions};
 use crate::image::{ColorDepth, ImageKey};
 use crate::interned_prims::{
-    BoxShadow, BoxShadowKey, Image, ImagePrimKey, LineDecoration, LineDecorationKey, RectangleKey,
-    RectanglePrim, YuvImage, YuvImagePrimKey,
+    BoxShadow, BoxShadowKey, ConicGradientKey, Image, ImageBorder, ImageBorderKey, ImagePrimKey,
+    LineDecoration, LineDecorationKey, LinearGradientKey, NormalBorderKey, NormalBorderPrim,
+    RadialGradientKey, RectangleKey, RectanglePrim, TextRunKey, YuvImage, YuvImagePrimKey,
 };
 use crate::interning::{self, DlDelta};
 use crate::path::Path;
 use crate::key_types::{
-    EdgeMask, GradientStopKey, PointKey, PrimKeyCommonData, StretchSizeKey, SubRectKey,
+    EdgeMask, GlyphInstanceAu, GradientStopKey, NinePatchDescriptor, PointKey, PrimKeyCommonData,
+    StretchSizeKey, SubRectKey,
 };
 use crate::prim_geometry::{
-    apply_gradient_local_clip, image_stretch_size, optimize_linear_gradient,
-    optimize_radial_gradient, resolve_tile_size, simplify_repeated_primitive,
+    apply_gradient_local_clip, conic_gradient_prim, image_stretch_size, linear_gradient_prim,
+    optimize_linear_gradient, optimize_radial_gradient, radial_gradient_prim,
+    resolve_tile_size, simplify_repeated_primitive,
 };
 use crate::units::*;
 
@@ -327,10 +330,7 @@ impl<'de> Deserialize<'de> for BuiltDisplayList {
                     DisplayListBuilder::push_iter_impl(&mut temp, clip_chain_ids);
                     Real::ClipChain(v)
                 }
-                Debug::Text(v, glyphs) => {
-                    DisplayListBuilder::push_iter_impl(&mut temp, glyphs);
-                    Real::Text(v)
-                },
+                Debug::Text(v) => Real::Text(v),
                 Debug::Iframe(v) => {
                     Real::Iframe(v)
                 }
@@ -424,7 +424,6 @@ pub struct BuiltDisplayListIter<'a> {
     parse_context: DlParseContext,
     cur_item: di::DisplayItem,
     cur_stops: ItemRange<'a, di::GradientStop>,
-    cur_glyphs: ItemRange<'a, GlyphInstance>,
     cur_filters: ItemRange<'a, di::FilterOp>,
     cur_filter_data: Vec<TempFilterData<'a>>,
     cur_clip_chain_items: ItemRange<'a, di::ClipId>,
@@ -520,10 +519,6 @@ impl<'a, 'b> DisplayItemRef<'a, 'b> {
 
     pub fn points(&self) -> ItemRange<LayoutPoint> {
         self.iter.cur_points
-    }
-
-    pub fn glyphs(&self) -> ItemRange<GlyphInstance> {
-        self.iter.glyphs()
     }
 
     pub fn gradient_stops(&self) -> ItemRange<di::GradientStop> {
@@ -670,10 +665,7 @@ impl BuiltDisplayList {
                     v,
                     item.iter.cur_clip_chain_items.iter().collect()
                 ),
-                Real::Text(v) => Debug::Text(
-                    v,
-                    item.iter.cur_glyphs.iter().collect()
-                ),
+                Real::Text(v) => Debug::Text(v),
                 Real::SetFilterOps => Debug::SetFilterOps(
                     item.iter.cur_filters.iter().collect()
                 ),
@@ -743,7 +735,6 @@ impl<'a> BuiltDisplayListIter<'a> {
             parse_context: DlParseContext::default(),
             cur_item: di::DisplayItem::PopStackingContext,
             cur_stops: ItemRange::default(),
-            cur_glyphs: ItemRange::default(),
             cur_filters: ItemRange::default(),
             cur_filter_data: Vec::new(),
             cur_clip_chain_items: ItemRange::default(),
@@ -766,10 +757,6 @@ impl<'a> BuiltDisplayListIter<'a> {
 
     pub fn current_item(&self) -> &di::DisplayItem {
         &self.cur_item
-    }
-
-    pub fn glyphs(&self) -> ItemRange<GlyphInstance> {
-        self.cur_glyphs
     }
 
     pub fn gradient_stops(&self) -> ItemRange<di::GradientStop> {
@@ -864,10 +851,6 @@ impl<'a> BuiltDisplayListIter<'a> {
             ClipChain(_) => {
                 self.cur_clip_chain_items = self.skip_slice("clip_chain.clip_ids");
                 self.debug_stats.log_slice("clip_chain.clip_ids", &self.cur_clip_chain_items);
-            }
-            Text(_) => {
-                self.cur_glyphs = self.skip_slice("text.glyphs");
-                self.debug_stats.log_slice("text.glyphs", &self.cur_glyphs);
             }
             _ => { /* do nothing */ }
         }
@@ -1005,6 +988,14 @@ impl<'a, T: Copy + peek_poke::Peek> Iterator for AuxIter<'a, T> {
 }
 
 impl<'a, T: Copy + peek_poke::Peek> ::std::iter::ExactSizeIterator for AuxIter<'a, T> {}
+
+/// A text run as `push_text` was handed it, glyphs already relative to the
+/// run's bounds origin.
+struct CapturedTextRun {
+    font_key: FontInstanceKey,
+    glyph_options: Option<GlyphOptions>,
+    glyphs: Vec<GlyphInstance>,
+}
 
 #[derive(Clone, Debug)]
 pub struct SaveState {
@@ -1243,6 +1234,9 @@ enum CapturedKey {
     Rectangle { transformed_aa_edges: EdgeMask },
     Line(LineDecoration),
     Image(Image),
+    /// Radii already clamped to the border box.
+    NormalBorder { border: di::NormalBorder, widths: LayoutSideOffsets },
+    Text(CapturedTextRun),
 }
 
 #[repr(C)]
@@ -1899,19 +1893,13 @@ impl DisplayListBuilder {
         // `color: transparent` with a `text-shadow`), so the item is still
         // captured for `pop_all_shadows` to copy; the original re-emission
         // there drops it.
-        if !color_is_visible(color) && self.pending_shadows.is_empty() {
+        let visible = color_is_visible(color);
+        if !visible && self.pending_shadows.is_empty() {
             return;
         }
 
         let (common, offset) = self.normalize_common(common);
-        let item = di::DisplayItem::Text(di::TextDisplayItem {
-            common,
-            bounds: self.shift_rect(bounds, offset),
-            color,
-            font_key,
-            glyph_options,
-            shadow: di::GlyphShadowMode::None,
-        });
+        let run_bounds = self.shift_rect(bounds, offset);
 
         // Store glyph pen positions relative to the (pre-normalization) bounds
         // origin. This difference is scroll-invariant - both the glyph points
@@ -1919,24 +1907,89 @@ impl DisplayListBuilder {
         // external scroll offset removal that `normalize_common` applies to
         // other coordinates, and it lets a shadow copy be produced by
         // translating just the bounds (the glyphs follow the prim origin at
-        // build time). The scene builder previously did this relativization; it
-        // now happens here at record time.
+        // build time).
         let bounds_origin = bounds.min.to_vector();
 
         // Take the scratch buffer out so we can hold it while also borrowing
-        // `self` mutably for `push_item`/`push_iter`; put it back afterwards to
-        // retain its capacity across text runs.
+        // `self` mutably; put it back afterwards to retain its capacity across
+        // text runs.
         let mut scratch = mem::take(&mut self.glyph_scratch);
         for split_glyphs in glyphs.chunks(MAX_TEXT_RUN_LENGTH) {
-            self.push_item(&item);
             scratch.clear();
             scratch.extend(split_glyphs.iter().map(|g| GlyphInstance {
                 index: g.index,
                 point: g.point - bounds_origin,
             }));
-            self.push_iter(&scratch);
+
+            // One interned run per chunk, since each chunk becomes its own
+            // primitive with its own glyph list.
+            let text_run = if visible {
+                self.intern_text_run(
+                    &scratch,
+                    run_bounds,
+                    &common,
+                    font_key,
+                    color,
+                    glyph_options,
+                    di::GlyphShadowMode::None,
+                )
+            } else {
+                interning::Handle::INVALID
+            };
+
+            if !self.pending_shadows.is_empty() {
+                let text = CapturedTextRun { font_key, glyph_options, glyphs: scratch.clone() };
+                self.capture_prim(&common, run_bounds, CapturedKey::Text(text));
+            }
+
+            self.push_item(&di::DisplayItem::Text(di::TextDisplayItem {
+                spatial_id: common.spatial_id,
+                clip_chain_id: common.clip_chain_id,
+                text_run,
+            }));
         }
         self.glyph_scratch = scratch;
+    }
+
+    /// Intern one run of glyphs and return the handle to record on its display
+    /// item. `glyphs` are already relative to the run's bounds origin.
+    fn intern_text_run(
+        &mut self,
+        glyphs: &[GlyphInstance],
+        bounds: LayoutRect,
+        common: &di::CommonItemProperties,
+        font_key: FontInstanceKey,
+        color: ColorF,
+        glyph_options: Option<GlyphOptions>,
+        shadow: di::GlyphShadowMode,
+    ) -> interning::Handle<TextRunKey> {
+        // A blurred shadow is rasterized in local space whatever the enclosing
+        // stacking contexts asked for; everything else takes the resolved
+        // raster space.
+        let requested_raster_space = match shadow {
+            di::GlyphShadowMode::Blurred => di::RasterSpace::Local(1.0),
+            di::GlyphShadowMode::None | di::GlyphShadowMode::Unblurred => {
+                *self.raster_space_stack.last().unwrap()
+            }
+        };
+
+        let key = TextRunKey {
+            common: prim_key_common(common, bounds, EdgeMask::all()),
+            font_key,
+            color: color.into(),
+            glyph_options,
+            glyphs: glyphs
+                .iter()
+                .map(|glyph| GlyphInstanceAu {
+                    index: glyph.index,
+                    point: glyph.point.to_au(),
+                })
+                .collect(),
+            shadow,
+            requested_raster_space,
+        };
+
+        self.interners.intern(&key)
     }
 
     /// Normalize `stops` and describe the gradient they make.
@@ -1995,27 +2048,136 @@ impl DisplayListBuilder {
         common: &di::CommonItemProperties,
         bounds: LayoutRect,
         widths: LayoutSideOffsets,
-        mut details: di::BorderDetails,
+        details: di::BorderDetails,
         // Stops for a `NinePatchBorderSource` gradient; empty otherwise.
         gradient_stops: &[di::GradientStop],
     ) {
         let (common, offset) = self.normalize_common(common);
-        self.push_stops(gradient_stops);
         let bounds = self.shift_rect(bounds, offset);
 
-        // Shrink radii that would make adjacent corners overlap.
-        if let di::BorderDetails::Normal(ref mut border) = details {
-            crate::key_types::ensure_no_corner_overlap(&mut border.radius, bounds.size());
-        }
+        let details = match details {
+            di::BorderDetails::Normal(border) => {
+                let (border, handle) = self.intern_normal_border(border, widths, bounds, &common);
+                self.capture_prim(&common, bounds, CapturedKey::NormalBorder { border, widths });
+                di::BorderKind::Normal(handle)
+            }
+            // A gradient source is interned as the gradient it is, and an image
+            // source as an image border; both keys hold the nine-patch
+            // descriptor.
+            di::BorderDetails::NinePatch(border) => {
+                let nine_patch = NinePatchDescriptor {
+                    width: border.width,
+                    height: border.height,
+                    slice: border.slice,
+                    fill: border.fill,
+                    repeat_horizontal: border.repeat_horizontal,
+                    repeat_vertical: border.repeat_vertical,
+                    widths: widths.into(),
+                };
+                let descriptor = || Some(Box::new(nine_patch.clone()));
+                // The nine-patch stretches one gradient over the border box, so
+                // the tile is the whole nine-patch and there is no spacing. A
+                // border gradient skips the standalone optimisation pass, as it
+                // did on the scene builder.
+                let stretch = LayoutSize::new(border.height as f32, border.width as f32);
+                let key_common = prim_key_common(&common, bounds, EdgeMask::all());
+                match border.source {
+                    di::NinePatchBorderSource::Image(key, rendering) => {
+                        let key = ImageBorderKey::new(
+                            key_common,
+                            ImageBorder {
+                                key,
+                                rendering,
+                                tile: None,
+                                nine_patch: nine_patch.clone(),
+                            },
+                        );
+                        di::BorderKind::NinePatchImage(self.interners.intern(&key))
+                    }
+                    di::NinePatchBorderSource::Gradient(gradient) => {
+                        let Some(prim) = linear_gradient_prim(
+                            bounds,
+                            gradient.start,
+                            gradient.end,
+                            to_stop_keys(gradient_stops),
+                            gradient.extend_mode,
+                            gradient.alpha_mode,
+                            stretch,
+                            LayoutSize::zero(),
+                            descriptor(),
+                        ) else {
+                            return;
+                        };
+                        let key = LinearGradientKey::new(key_common, prim);
+                        di::BorderKind::NinePatchLinearGradient(self.interners.intern(&key))
+                    }
+                    di::NinePatchBorderSource::RadialGradient(gradient) => {
+                        let prim = radial_gradient_prim(
+                            bounds,
+                            gradient.center,
+                            gradient.start_offset * gradient.radius.width,
+                            gradient.end_offset * gradient.radius.width,
+                            gradient.radius.width / gradient.radius.height,
+                            to_stop_keys(gradient_stops),
+                            gradient.extend_mode,
+                            gradient.alpha_mode,
+                            stretch,
+                            LayoutSize::zero(),
+                            descriptor(),
+                        );
+                        let key = RadialGradientKey::new(key_common, prim);
+                        di::BorderKind::NinePatchRadialGradient(self.interners.intern(&key))
+                    }
+                    di::NinePatchBorderSource::ConicGradient(gradient) => {
+                        let prim = conic_gradient_prim(
+                            bounds,
+                            gradient.center,
+                            gradient.angle,
+                            gradient.start_offset,
+                            gradient.end_offset,
+                            to_stop_keys(gradient_stops),
+                            gradient.extend_mode,
+                            gradient.alpha_mode,
+                            stretch,
+                            LayoutSize::zero(),
+                            descriptor(),
+                        );
+                        let key = ConicGradientKey::new(key_common, prim);
+                        di::BorderKind::NinePatchConicGradient(self.interners.intern(&key))
+                    }
+                }
+            }
+        };
 
-        let item = di::DisplayItem::Border(di::BorderDisplayItem {
-            common,
-            bounds,
+        self.push_item(&di::DisplayItem::Border(di::BorderDisplayItem {
+            spatial_id: common.spatial_id,
+            clip_chain_id: common.clip_chain_id,
             details,
-            widths,
-        });
+        }));
+    }
 
-        self.push_item(&item);
+    /// Intern one normal border and return it as interned, with the handle to
+    /// record on its item. Shared by `push_border` and the shadow desugar,
+    /// which interns a recoloured copy.
+    fn intern_normal_border(
+        &mut self,
+        mut border: di::NormalBorder,
+        widths: LayoutSideOffsets,
+        bounds: LayoutRect,
+        common: &di::CommonItemProperties,
+    ) -> (di::NormalBorder, interning::Handle<NormalBorderKey>) {
+        // css-backgrounds-3 5.5: radii that do not fit the border box are
+        // scaled back by a uniform ratio. Applied before the key is built, so
+        // two borders that render identically after clamping share an entry.
+        crate::key_types::ensure_no_corner_overlap(&mut border.radius, bounds.size());
+        let key = NormalBorderKey::new(
+            prim_key_common(common, bounds, EdgeMask::all()),
+            NormalBorderPrim {
+                border: border.into(),
+                widths: widths.to_au(),
+            },
+        );
+        (border, self.interners.intern(&key))
     }
 
     pub fn push_box_shadow(
@@ -2296,18 +2458,48 @@ impl DisplayListBuilder {
         }
 
         let (common, offset) = self.normalize_common(common);
-        let mut bounds = self.shift_rect(bounds, offset);
+        let bounds = self.shift_rect(bounds, offset);
 
+        let Some(handle) = self.intern_linear_gradient(
+            bounds,
+            &common,
+            &gradient,
+            tile_size,
+            tile_spacing,
+            stops,
+        ) else {
+            return;
+        };
+
+        self.push_item(&di::DisplayItem::Gradient(di::GradientDisplayItem {
+            spatial_id: common.spatial_id,
+            clip_chain_id: common.clip_chain_id,
+            gradient: handle,
+        }));
+    }
+
+    /// Run a standalone linear gradient through the geometry pipeline and
+    /// intern the result. Returns the optimized rect to record the item with,
+    /// or `None` if the gradient cannot contribute to the scene. The fast-path
+    /// two-stop segment decomposition is not done here: it happens at prepare
+    /// time, so segments tile against the snapped prim rect (see
+    /// `decompose_axis_aligned_gradient`).
+    fn intern_linear_gradient(
+        &mut self,
+        bounds: LayoutRect,
+        common: &di::CommonItemProperties,
+        gradient: &di::Gradient,
+        tile_size: LayoutSize,
+        tile_spacing: LayoutSize,
+        stops: &[di::GradientStop],
+    ) -> Option<interning::Handle<LinearGradientKey>> {
         let mut tile_size = resolve_tile_size(&bounds, tile_size);
 
+        let mut prim_rect = bounds;
         let mut start = gradient.start;
         let mut end = gradient.end;
-        // The simplification and clip pass. The fast-path two-stop segment
-        // decomposition is not done here: it happens at prepare time, so
-        // segments tile against the snapped prim rect (see
-        // `decompose_axis_aligned_gradient`).
         optimize_linear_gradient(
-            &mut bounds,
+            &mut prim_rect,
             &mut tile_size,
             tile_spacing,
             &common.clip_rect,
@@ -2317,23 +2509,26 @@ impl DisplayListBuilder {
 
         // A tile that rounds up to nothing covers no pixel.
         if tile_size.ceil().is_empty() {
-            return;
+            return None;
         }
 
-        self.push_stops(stops);
-        let item = di::DisplayItem::Gradient(di::GradientDisplayItem {
-            common,
-            bounds,
-            gradient: di::Gradient {
-                start,
-                end,
-                ..gradient
-            },
+        let prim = linear_gradient_prim(
+            prim_rect,
+            start,
+            end,
+            to_stop_keys(stops),
+            gradient.extend_mode,
+            gradient.alpha_mode,
             tile_size,
             tile_spacing,
-        });
+            None,
+        )?;
 
-        self.push_item(&item);
+        let key = LinearGradientKey::new(
+            prim_key_common(common, prim_rect, EdgeMask::all()),
+            prim,
+        );
+        Some(self.interners.intern(&key))
     }
 
     /// Pushes a radial gradient to be displayed.
@@ -2353,24 +2548,51 @@ impl DisplayListBuilder {
         }
 
         let (common, offset) = self.normalize_common(common);
-        let mut prim_rect = self.shift_rect(bounds, offset);
+        let bounds = self.shift_rect(bounds, offset);
 
-        let mut tile_size = resolve_tile_size(&prim_rect, tile_size);
+        let Some(handle) = self.intern_radial_gradient(
+            bounds,
+            &common,
+            &gradient,
+            tile_size,
+            tile_spacing,
+            stops,
+        ) else {
+            return;
+        };
 
-        let stop_keys: Vec<GradientStopKey> = stops
-            .iter()
-            .map(|stop| GradientStopKey {
-                offset: stop.offset,
-                color: stop.color.into(),
-            })
-            .collect();
+        self.push_item(&di::DisplayItem::RadialGradient(di::RadialGradientDisplayItem {
+            spatial_id: common.spatial_id,
+            clip_chain_id: common.clip_chain_id,
+            gradient: handle,
+        }));
+    }
 
+    /// See `intern_linear_gradient`.
+    ///
+    /// A clamped radial gradient whose ellipse leaves wide constant-colour
+    /// margins is shrunk to the interesting part, and the margins are pushed as
+    /// solid rects. Each carries its own AA edge mask so its interior edges do
+    /// not seam against the gradient, which is what
+    /// `RectangleDisplayItem::transformed_aa_edges` is for.
+    fn intern_radial_gradient(
+        &mut self,
+        bounds: LayoutRect,
+        common: &di::CommonItemProperties,
+        gradient: &di::RadialGradient,
+        tile_size: LayoutSize,
+        tile_spacing: LayoutSize,
+        stops: &[di::GradientStop],
+    ) -> Option<interning::Handle<RadialGradientKey>> {
+        let mut tile_size = resolve_tile_size(&bounds, tile_size);
+        let stop_keys = to_stop_keys(stops);
+
+        let mut prim_rect = bounds;
         let mut center = gradient.center;
         let mut tile_spacing = tile_spacing;
         let mut aa_mask = EdgeMask::all();
+        let mut margins: Vec<(LayoutRect, ColorU, EdgeMask)> = Vec::new();
 
-        // Shrinks the gradient to the part that is not a constant colour and
-        // emits the margins around it as solid rects.
         optimize_radial_gradient(
             &mut prim_rect,
             &mut tile_size,
@@ -2382,41 +2604,43 @@ impl DisplayListBuilder {
             gradient.end_offset,
             gradient.extend_mode,
             &stop_keys,
-            &mut |solid_rect, color, aa_mask| {
-                // Pushed before the gradient, and whether or not the gradient
-                // itself survives the empty-tile reject below: a gradient that
-                // optimizes away entirely is all margin. A transparent margin
-                // is dropped like any other transparent rectangle.
-                self.push_rect_prim(
-                    &common,
-                    *solid_rect,
-                    PropertyBinding::Value(color.into()),
-                    aa_mask,
-                );
-            },
+            &mut |solid_rect, color, mask| margins.push((*solid_rect, color, mask)),
         );
+
+        // Pushed before the gradient, and whether or not the gradient itself
+        // survives the empty-tile reject below: a gradient that optimizes away
+        // entirely is all margin. A transparent margin is dropped like any
+        // other transparent rectangle.
+        for (rect, color, mask) in margins {
+            self.push_rect_prim(common, rect, PropertyBinding::Value(color.into()), mask);
+        }
 
         // `radial_gradient_prim` runs this too but discards the rect it
         // produces, so the mutation has to happen out here.
         simplify_repeated_primitive(&tile_size, &mut tile_spacing, &mut prim_rect);
 
-        // A tile that rounds up to nothing covers no pixel. The margins above
-        // are already out.
+        // A tile that rounds up to nothing covers no pixel.
         if tile_size.ceil().is_empty() {
-            return;
+            return None;
         }
 
-        self.push_stops(stops);
-        let item = di::DisplayItem::RadialGradient(di::RadialGradientDisplayItem {
-            common,
-            bounds: prim_rect,
-            gradient: di::RadialGradient { center, ..gradient },
+        let prim = radial_gradient_prim(
+            prim_rect,
+            center,
+            gradient.start_offset * gradient.radius.width,
+            gradient.end_offset * gradient.radius.width,
+            gradient.radius.width / gradient.radius.height,
+            stop_keys,
+            gradient.extend_mode,
+            gradient.alpha_mode,
             tile_size,
             tile_spacing,
-            transformed_aa_edges: aa_mask,
-        });
+            None,
+        );
 
-        self.push_item(&item);
+        // The mask is narrowed where a margin now covers an edge.
+        let key = RadialGradientKey::new(prim_key_common(common, prim_rect, aa_mask), prim);
+        Some(self.interners.intern(&key))
     }
 
     /// Pushes a conic gradient to be displayed.
@@ -2436,31 +2660,66 @@ impl DisplayListBuilder {
         }
 
         let (common, offset) = self.normalize_common(common);
-        let mut bounds = self.shift_rect(bounds, offset);
+        let bounds = self.shift_rect(bounds, offset);
 
+        let Some(handle) = self.intern_conic_gradient(
+            bounds,
+            &common,
+            &gradient,
+            tile_size,
+            tile_spacing,
+            stops,
+        ) else {
+            return;
+        };
+
+        self.push_item(&di::DisplayItem::ConicGradient(di::ConicGradientDisplayItem {
+            spatial_id: common.spatial_id,
+            clip_chain_id: common.clip_chain_id,
+            gradient: handle,
+        }));
+    }
+
+    /// See `intern_linear_gradient`.
+    fn intern_conic_gradient(
+        &mut self,
+        bounds: LayoutRect,
+        common: &di::CommonItemProperties,
+        gradient: &di::ConicGradient,
+        tile_size: LayoutSize,
+        tile_spacing: LayoutSize,
+        stops: &[di::GradientStop],
+    ) -> Option<interning::Handle<ConicGradientKey>> {
         let tile_size = resolve_tile_size(&bounds, tile_size);
 
+        let mut prim_rect = bounds;
         let clip_offset =
-            apply_gradient_local_clip(&mut bounds, &tile_size, &tile_spacing, &common.clip_rect);
+            apply_gradient_local_clip(&mut prim_rect, &tile_size, &tile_spacing, &common.clip_rect);
 
         // A tile that rounds up to nothing covers no pixel.
         if tile_size.ceil().is_empty() {
-            return;
+            return None;
         }
 
-        self.push_stops(stops);
-        let item = di::DisplayItem::ConicGradient(di::ConicGradientDisplayItem {
-            common,
-            bounds,
-            gradient: di::ConicGradient {
-                center: gradient.center + clip_offset,
-                ..gradient
-            },
+        let prim = conic_gradient_prim(
+            prim_rect,
+            gradient.center + clip_offset,
+            gradient.angle,
+            gradient.start_offset,
+            gradient.end_offset,
+            to_stop_keys(stops),
+            gradient.extend_mode,
+            gradient.alpha_mode,
             tile_size,
             tile_spacing,
-        });
+            None,
+        );
 
-        self.push_item(&item);
+        let key = ConicGradientKey::new(
+            prim_key_common(common, prim_rect, EdgeMask::all()),
+            prim,
+        );
+        Some(self.interners.intern(&key))
     }
 
     pub fn define_reference_frame(
@@ -3124,13 +3383,10 @@ impl DisplayListBuilder {
     /// `SubpixelMode::Deny`, so the stacking context keeps `RasterSpace::Screen`
     /// like the scene builder's shadow picture did.
     fn desugar_shadow_scope(&mut self) {
-        // A shadowable/drawable item plus its aux (only text carries glyphs)
-        // and, for an interned primitive, what its key was built from.
+        // A drawable item plus, for a primitive that casts a shadow, what its
+        // key was built from, which its item does not carry.
         struct DrawEntry {
             item: di::DisplayItem,
-            glyphs: Vec<GlyphInstance>,
-            /// What an interned primitive's key was built from, which its item
-            /// does not carry.
             key: Option<CapturedPrim>,
         }
         enum Parsed {
@@ -3172,18 +3428,20 @@ impl DisplayListBuilder {
                     },
                     draw => Parsed::Draw(DrawEntry {
                         item: *draw,
-                        glyphs: match draw {
-                            di::DisplayItem::Text(..) => item.glyphs().iter().collect(),
-                            _ => Vec::new(),
-                        },
-                        // One entry per captured interned primitive, in capture
-                        // order.
+                        // One entry per captured primitive that casts a shadow,
+                        // in capture order.
                         key: match draw {
                             di::DisplayItem::Rectangle(..)
                             | di::DisplayItem::Line(..)
-                            | di::DisplayItem::Image(..) => Some(
+                            | di::DisplayItem::Image(..)
+                            | di::DisplayItem::Text(..) => Some(
                                 captured_keys.next().expect("primitive item without its captured key"),
                             ),
+                            di::DisplayItem::Border(info)
+                                if matches!(info.details, di::BorderKind::Normal(..)) =>
+                            {
+                                Some(captured_keys.next().expect("normal border item without its captured key"))
+                            }
                             _ => None,
                         },
                     }),
@@ -3264,21 +3522,11 @@ impl DisplayListBuilder {
                     {
                         continue;
                     }
+                    // Every other kind is dropped from the shadow, as the scene
+                    // builder's old `CreateShadow` impls did.
                     if let Some(ref captured) = entry.key {
-                        let copy = self.intern_shadow_copy(captured, s.offset, s.color);
+                        let copy = self.intern_shadow_copy(captured, s.offset, s.color, shadow_mode);
                         self.push_item(&copy);
-                        continue;
-                    }
-                    if let Some(copy) = Self::shadow_copy_of_item(
-                        &entry.item,
-                        s.offset,
-                        s.color,
-                        shadow_mode,
-                    ) {
-                        self.push_item(&copy);
-                        if matches!(copy, di::DisplayItem::Text(..)) {
-                            self.push_iter(&entry.glyphs);
-                        }
                     }
                 }
             }
@@ -3292,7 +3540,7 @@ impl DisplayListBuilder {
         for p in &parsed {
             if let Parsed::Draw(entry) = p {
                 let visible = match entry.item {
-                    di::DisplayItem::Text(ref info) => color_is_visible(info.color),
+                    di::DisplayItem::Text(ref info) => info.text_run != interning::Handle::INVALID,
                     di::DisplayItem::Rectangle(ref info) => info.rect != interning::Handle::INVALID,
                     di::DisplayItem::Line(ref info) => info.line != interning::Handle::INVALID,
                     _ => true,
@@ -3302,9 +3550,6 @@ impl DisplayListBuilder {
                 }
 
                 self.push_item(&entry.item);
-                if matches!(entry.item, di::DisplayItem::Text(..)) {
-                    self.push_iter(&entry.glyphs);
-                }
             }
         }
 
@@ -3316,13 +3561,18 @@ impl DisplayListBuilder {
     }
 
     /// Intern the shadow copy of a captured primitive: geometry translated by
-    /// `offset`, clip chain dropped and colour replaced by `color`, as
-    /// `shadow_copy_of_item` does for the items that still carry their fields.
+    /// `offset`, clip chain dropped and colour replaced by `color`. The clip
+    /// chain goes because the shadow's clip is applied to the enclosing blur
+    /// picture, so the copy inside must be unclipped, as the old scene builder
+    /// rasterized shadowed primitives unclipped and clipped the composited
+    /// picture. A text copy also takes the shadow mode, and its glyphs, being
+    /// relative to the bounds origin, follow the translated bounds.
     fn intern_shadow_copy(
         &mut self,
         captured: &CapturedPrim,
         offset: LayoutVector2D,
         color: ColorF,
+        shadow_mode: di::GlyphShadowMode,
     ) -> di::DisplayItem {
         let common = shadow_copy_common(captured.common, offset);
         let bounds = captured.bounds.translate(offset);
@@ -3352,6 +3602,35 @@ impl DisplayListBuilder {
                     image,
                 })
             }
+            CapturedKey::NormalBorder { border, widths } => {
+                let (_, handle) = self.intern_normal_border(
+                    border.with_color(color),
+                    widths,
+                    bounds,
+                    &common,
+                );
+                di::DisplayItem::Border(di::BorderDisplayItem {
+                    spatial_id: common.spatial_id,
+                    clip_chain_id: common.clip_chain_id,
+                    details: di::BorderKind::Normal(handle),
+                })
+            }
+            CapturedKey::Text(ref text) => {
+                let text_run = self.intern_text_run(
+                    &text.glyphs,
+                    bounds,
+                    &common,
+                    text.font_key,
+                    color,
+                    text.glyph_options,
+                    shadow_mode,
+                );
+                di::DisplayItem::Text(di::TextDisplayItem {
+                    spatial_id: common.spatial_id,
+                    clip_chain_id: common.clip_chain_id,
+                    text_run,
+                })
+            }
             CapturedKey::Line(ref decoration) => {
                 let line = self.intern_line(
                     &LineDecoration { color: color.into(), ..decoration.clone() },
@@ -3365,58 +3644,6 @@ impl DisplayListBuilder {
                 })
             }
         }
-    }
-
-    /// Produce the shadow copy of a shadowable display item: geometry
-    /// translated by `offset` and color replaced by `color`. Returns `None` for
-    /// item types that cannot cast a shadow (they are dropped from the shadow),
-    /// mirroring the scene builder's `CreateShadow` impls.
-    ///
-    /// Aux data (e.g. text glyphs) is unchanged and re-emitted separately: text
-    /// glyphs are stored relative to the bounds origin (see `push_text`), so
-    /// they follow the translated bounds without needing to be rewritten here.
-    fn shadow_copy_of_item(
-        item: &di::DisplayItem,
-        offset: LayoutVector2D,
-        color: ColorF,
-        shadow_mode: di::GlyphShadowMode,
-    ) -> Option<di::DisplayItem> {
-        use di::DisplayItem::*;
-
-        // Translate the copy by the shadow offset and drop its clip chain (see
-        // `desugar_shadow_scope`): the shadow's clip is applied to the enclosing
-        // blur picture, so the copy inside must be unclipped, matching the old
-        // scene builder (which rasterized the shadowed primitives unclipped and
-        // clipped the composited picture).
-        let shift = |common| shadow_copy_common(common, offset);
-
-        Some(match item {
-            // Interned from their captured keys, see `intern_shadow_copy`.
-            Rectangle(..) | Line(..) | Image(..) => unreachable!("shadow copy of a primitive with a captured key"),
-            Text(info) => Text(di::TextDisplayItem {
-                common: shift(info.common),
-                bounds: info.bounds.translate(offset),
-                color,
-                shadow: shadow_mode,
-                ..*info
-            }),
-            Border(info) => {
-                // Only normal borders cast a shadow via this path.
-                let details = match info.details {
-                    di::BorderDetails::Normal(border) => {
-                        di::BorderDetails::Normal(border.with_color(color))
-                    }
-                    di::BorderDetails::NinePatch(_) => return None,
-                };
-                Border(di::BorderDisplayItem {
-                    common: shift(info.common),
-                    bounds: info.bounds.translate(offset),
-                    details,
-                    ..*info
-                })
-            }
-            _ => return None,
-        })
     }
 
     /// Start a display list. `au_per_dev_px` is the caller's app-units-per-device
@@ -4347,6 +4574,594 @@ mod yuv_image_interning_tests {
         let kind = &dl.delta().yuv_images.adds[0].key.kind;
         assert_eq!(kind.format, di::YuvFormat::NV12);
         assert_eq!(kind.yuv_key, [plane(1), plane(2), ImageKey::DUMMY]);
+    }
+}
+
+/// The interning-key form of a gradient's stops.
+fn to_stop_keys(stops: &[di::GradientStop]) -> Vec<GradientStopKey> {
+    stops
+        .iter()
+        .map(|stop| GradientStopKey {
+            offset: stop.offset,
+            color: stop.color.into(),
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod gradient_interning_tests {
+    use super::*;
+
+    const BOUNDS: LayoutRect = LayoutRect {
+        min: LayoutPoint::new(0.0, 0.0),
+        max: LayoutPoint::new(200.0, 100.0),
+    };
+
+    fn common() -> di::CommonItemProperties {
+        let pipeline_id = PipelineId::dummy();
+        di::CommonItemProperties {
+            clip_rect: LayoutRect::from_size(LayoutSize::new(1000.0, 1000.0)),
+            clip_chain_id: di::ClipChainId::INVALID,
+            spatial_id: di::SpatialId::root_scroll_node(pipeline_id),
+            flags: di::PrimitiveFlags::default(),
+        }
+    }
+
+    fn stops(a: ColorF, b: ColorF) -> [di::GradientStop; 2] {
+        [
+            di::GradientStop { offset: 0.0, color: a },
+            di::GradientStop { offset: 1.0, color: b },
+        ]
+    }
+
+    fn linear(builder: &mut DisplayListBuilder, bounds: LayoutRect, stops: &[di::GradientStop]) {
+        let (gradient, stops) = builder.create_gradient(
+            LayoutVector2D::new(0.0, 0.0),
+            LayoutVector2D::new(0.0, 100.0),
+            stops.to_vec(),
+            di::ExtendMode::Clamp,
+            di::AlphaMode::Premultiplied,
+        );
+        builder.push_gradient(&common(), bounds, gradient, bounds.size(), LayoutSize::zero(), &stops);
+    }
+
+    fn count<F: Fn(&di::DisplayItem) -> bool>(dl: &BuiltDisplayList, f: F) -> usize {
+        let mut n = 0;
+        let mut iter = dl.iter();
+        while let Some(item) = iter.next() {
+            if f(item.item()) {
+                n += 1;
+            }
+        }
+        n
+    }
+
+    #[test]
+    fn identical_gradients_intern_once_and_carry_no_stops() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        let black_white = stops(ColorF::BLACK, ColorF::WHITE);
+        linear(&mut builder, BOUNDS, &black_white);
+        linear(&mut builder, BOUNDS, &black_white);
+        linear(&mut builder, BOUNDS, &stops(ColorF::WHITE, ColorF::BLACK));
+
+        let (_, dl) = builder.end();
+        let adds = &dl.delta().linear_gradients.adds;
+        assert_eq!(adds.len(), 2, "the stops are part of the key");
+        assert_eq!(adds[0].key.stops.len(), 2);
+        assert_eq!(count(&dl, |item| matches!(item, di::DisplayItem::Gradient(..))), 3);
+        assert_eq!(
+            count(&dl, |item| matches!(item, di::DisplayItem::SetGradientStops)),
+            0,
+            "the stops no longer ride the display list",
+        );
+    }
+
+    #[test]
+    fn a_nine_patch_gradient_border_is_a_gradient_with_a_descriptor() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        let black_white = stops(ColorF::BLACK, ColorF::WHITE);
+        let (gradient, black_white) = builder.create_gradient(
+            LayoutVector2D::new(0.0, 0.0),
+            LayoutVector2D::new(0.0, 100.0),
+            black_white.to_vec(),
+            di::ExtendMode::Clamp,
+            di::AlphaMode::Premultiplied,
+        );
+        let widths = LayoutSideOffsets::new_all_same(10.0);
+        builder.push_border(
+            &common(),
+            BOUNDS,
+            widths,
+            di::BorderDetails::NinePatch(di::NinePatchBorder {
+                source: di::NinePatchBorderSource::Gradient(gradient),
+                width: 200,
+                height: 100,
+                slice: DeviceIntSideOffsets::new_all_same(10),
+                fill: false,
+                repeat_horizontal: di::RepeatMode::Stretch,
+                repeat_vertical: di::RepeatMode::Stretch,
+            }),
+            &black_white,
+        );
+
+        let (_, dl) = builder.end();
+        let adds = &dl.delta().linear_gradients.adds;
+        assert_eq!(adds.len(), 1);
+        let descriptor = adds[0].key.nine_patch.as_ref().expect("no nine-patch descriptor");
+        assert_eq!(descriptor.widths, widths.into());
+        let mut iter = dl.iter();
+        let mut borders = 0;
+        while let Some(item) = iter.next() {
+            if let di::DisplayItem::Border(info) = item.item() {
+                borders += 1;
+                assert!(matches!(info.details, di::BorderKind::NinePatchLinearGradient(..)));
+            }
+        }
+        assert_eq!(borders, 1);
+    }
+
+    #[test]
+    fn a_clamped_radial_gradient_still_emits_its_margins() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        // A small ellipse in a big rect: the constant-colour margins around it
+        // (at least 128px wide, or the optimisation does not bother) become
+        // solid rects, pushed whether or not the gradient itself survives.
+        let bounds = LayoutRect::from_size(LayoutSize::new(1000.0, 600.0));
+        let black_white = stops(ColorF::BLACK, ColorF::WHITE);
+        let (gradient, black_white) = builder.create_radial_gradient(
+            LayoutVector2D::new(500.0, 300.0),
+            LayoutSize::new(50.0, 50.0),
+            black_white.to_vec(),
+            di::ExtendMode::Clamp,
+            di::AlphaMode::Premultiplied,
+        );
+        builder.push_radial_gradient(
+            &common(),
+            bounds,
+            gradient,
+            bounds.size(),
+            LayoutSize::zero(),
+            &black_white,
+        );
+
+        let (_, dl) = builder.end();
+        assert_eq!(dl.delta().radial_gradients.adds.len(), 1);
+        assert!(
+            dl.delta().rectangles.adds.len() >= 2,
+            "the margins were not interned as rectangles",
+        );
+        assert!(count(&dl, |item| matches!(item, di::DisplayItem::Rectangle(..))) >= 2);
+    }
+}
+
+#[cfg(test)]
+mod border_interning_tests {
+    use super::*;
+    use crate::IdNamespace;
+
+    const BOX: LayoutRect = LayoutRect {
+        min: LayoutPoint::new(0.0, 0.0),
+        max: LayoutPoint::new(100.0, 100.0),
+    };
+
+    fn common() -> di::CommonItemProperties {
+        let pipeline_id = PipelineId::dummy();
+        di::CommonItemProperties {
+            clip_rect: LayoutRect::from_size(LayoutSize::new(1000.0, 1000.0)),
+            clip_chain_id: di::ClipChainId::INVALID,
+            spatial_id: di::SpatialId::root_scroll_node(pipeline_id),
+            flags: di::PrimitiveFlags::default(),
+        }
+    }
+
+    fn border(color: ColorF, radius: f32) -> di::NormalBorder {
+        let side = di::BorderSide { color, style: di::BorderStyle::Solid };
+        di::NormalBorder {
+            left: side,
+            right: side,
+            top: side,
+            bottom: side,
+            radius: di::BorderRadius::uniform(radius),
+            inset: LayoutSideOffsets::zero(),
+            do_aa: true,
+        }
+    }
+
+    fn push(builder: &mut DisplayListBuilder, bounds: LayoutRect, border: di::NormalBorder) {
+        builder.push_border(
+            &common(),
+            bounds,
+            LayoutSideOffsets::new_all_same(2.0),
+            di::BorderDetails::Normal(border),
+            &[],
+        );
+    }
+
+    fn push_image_border(builder: &mut DisplayListBuilder, widths: f32) {
+        let border = di::NinePatchBorder {
+            source: di::NinePatchBorderSource::Image(
+                ImageKey::new(IdNamespace(1), 3),
+                di::ImageRendering::Auto,
+            ),
+            width: 30,
+            height: 30,
+            slice: DeviceIntSideOffsets::new_all_same(10),
+            fill: false,
+            repeat_horizontal: di::RepeatMode::Stretch,
+            repeat_vertical: di::RepeatMode::Stretch,
+        };
+        builder.push_border(
+            &common(),
+            BOX,
+            LayoutSideOffsets::new_all_same(widths),
+            di::BorderDetails::NinePatch(border),
+            &[],
+        );
+    }
+
+    fn border_kinds(dl: &BuiltDisplayList) -> Vec<di::BorderKind> {
+        let mut kinds = Vec::new();
+        let mut iter = dl.iter();
+        while let Some(item) = iter.next() {
+            if let di::DisplayItem::Border(info) = item.item() {
+                kinds.push(info.details);
+            }
+        }
+        kinds
+    }
+
+    #[test]
+    fn identical_borders_in_one_list_intern_once() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        // Every cell of a table, every input on a form: the same border on the
+        // same box is the case this is for.
+        push(&mut builder, BOX, border(ColorF::BLACK, 0.0));
+        push(&mut builder, BOX, border(ColorF::BLACK, 0.0));
+        push(&mut builder, BOX, border(ColorF::WHITE, 0.0));
+
+        let (_, dl) = builder.end();
+        assert_eq!(dl.delta().normal_borders.adds.len(), 2, "colour is part of the key");
+        let kinds = border_kinds(&dl);
+        assert_eq!(kinds.len(), 3);
+        assert_eq!(kinds[0], kinds[1]);
+        assert_ne!(kinds[0], kinds[2]);
+    }
+
+    #[test]
+    fn the_radius_clamp_is_applied_before_the_key() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        // Both radii exceed half the box, so both clamp to the same 50px and
+        // render identically. Clamping before the key is what lets them share.
+        push(&mut builder, BOX, border(ColorF::BLACK, 200.0));
+        push(&mut builder, BOX, border(ColorF::BLACK, 400.0));
+
+        let (_, dl) = builder.end();
+        assert_eq!(dl.delta().normal_borders.adds.len(), 1);
+    }
+
+    #[test]
+    fn widths_are_part_of_the_key() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        for width in [2.0, 6.0] {
+            builder.push_border(
+                &common(),
+                BOX,
+                LayoutSideOffsets::new_all_same(width),
+                di::BorderDetails::Normal(border(ColorF::BLACK, 0.0)),
+                &[],
+            );
+        }
+
+        let (_, dl) = builder.end();
+        assert_eq!(dl.delta().normal_borders.adds.len(), 2);
+    }
+
+    #[test]
+    fn a_shadowed_border_interns_its_copy_separately() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        let red = ColorF::new(1.0, 0.0, 0.0, 1.0);
+        builder.push_shadow(
+            &di::SpaceAndClipInfo {
+                spatial_id: di::SpatialId::root_scroll_node(PipelineId::dummy()),
+                clip_chain_id: di::ClipChainId::INVALID,
+            },
+            di::Shadow {
+                offset: LayoutVector2D::new(4.0, 4.0),
+                color: red,
+                blur_radius: 0.0,
+            },
+            true,
+        );
+        push(&mut builder, BOX, border(ColorF::BLACK, 300.0));
+        builder.pop_all_shadows();
+
+        // The copy is the original recoloured, radii clamped the same way, so
+        // it is a distinct entry and both items carry a handle.
+        let (_, dl) = builder.end();
+        let adds = &dl.delta().normal_borders.adds;
+        assert_eq!(adds.len(), 2);
+        let colors: Vec<ColorU> = adds.iter().map(|add| add.key.kind.border.top.color).collect();
+        assert!(colors.contains(&red.into()));
+        assert!(colors.contains(&ColorF::BLACK.into()));
+        assert!(adds.iter().all(|add| add.key.kind.border.radius.top_left.width.to_f32_px() <= 50.0));
+        let kinds = border_kinds(&dl);
+        assert_eq!(kinds.len(), 2);
+        assert!(kinds.iter().all(|kind| {
+            matches!(kind, di::BorderKind::Normal(handle) if *handle != interning::Handle::INVALID)
+        }));
+    }
+
+    #[test]
+    fn identical_image_borders_intern_once() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        push_image_border(&mut builder, 10.0);
+        push_image_border(&mut builder, 10.0);
+        // The widths are part of the descriptor, and so of the key.
+        push_image_border(&mut builder, 12.0);
+
+        let (_, dl) = builder.end();
+        let adds = &dl.delta().image_borders.adds;
+        assert_eq!(adds.len(), 2);
+        assert_eq!(adds[0].key.kind.nine_patch.width, 30);
+        assert!(dl.delta().normal_borders.is_empty());
+        let kinds = border_kinds(&dl);
+        assert_eq!(kinds.len(), 3);
+        assert!(matches!(kinds[0], di::BorderKind::NinePatchImage(handle) if handle.slot() == adds[0].slot));
+    }
+}
+
+#[cfg(test)]
+mod text_interning_tests {
+    use super::*;
+    use crate::IdNamespace;
+
+    fn glyph(index: u32, x: f32) -> GlyphInstance {
+        GlyphInstance { index, point: LayoutPoint::new(x, 10.0) }
+    }
+
+    fn push_run(builder: &mut DisplayListBuilder, glyphs: &[GlyphInstance], color: ColorF) {
+        push_run_with_flags(builder, glyphs, color, di::PrimitiveFlags::default());
+    }
+
+    fn push_run_with_flags(
+        builder: &mut DisplayListBuilder,
+        glyphs: &[GlyphInstance],
+        color: ColorF,
+        flags: di::PrimitiveFlags,
+    ) {
+        let pipeline_id = PipelineId::dummy();
+        let rect = LayoutRect::from_size(LayoutSize::new(100.0, 100.0));
+        let common = di::CommonItemProperties {
+            clip_rect: rect,
+            clip_chain_id: di::ClipChainId::INVALID,
+            spatial_id: di::SpatialId::root_scroll_node(pipeline_id),
+            flags,
+        };
+
+        builder.push_text(
+            &common,
+            rect,
+            glyphs,
+            FontInstanceKey::new(IdNamespace(1), 1),
+            color,
+            None,
+        );
+    }
+
+    fn text_items(dl: &BuiltDisplayList) -> Vec<di::TextDisplayItem> {
+        let mut items = Vec::new();
+        let mut iter = dl.iter();
+        while let Some(item) = iter.next() {
+            if let di::DisplayItem::Text(info) = item.item() {
+                items.push(*info);
+            }
+        }
+        items
+    }
+
+    fn push_shadow(builder: &mut DisplayListBuilder, color: ColorF, blur_radius: f32) {
+        let pipeline_id = PipelineId::dummy();
+        builder.push_shadow(
+            &di::SpaceAndClipInfo {
+                spatial_id: di::SpatialId::root_scroll_node(pipeline_id),
+                clip_chain_id: di::ClipChainId::INVALID,
+            },
+            di::Shadow {
+                offset: LayoutVector2D::new(2.0, 2.0),
+                color,
+                blur_radius,
+            },
+            true,
+        );
+    }
+
+    #[test]
+    fn identical_runs_in_one_list_intern_once() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        let glyphs = [glyph(1, 0.0), glyph(2, 8.0)];
+        push_run(&mut builder, &glyphs, ColorF::BLACK);
+        push_run(&mut builder, &glyphs, ColorF::BLACK);
+        push_run(&mut builder, &glyphs, ColorF::WHITE);
+
+        let (_, dl) = builder.end();
+        assert_eq!(dl.delta().text_runs.adds.len(), 2, "colour is part of the key, repetition is not");
+        assert!(dl.delta().text_runs.removes.is_empty());
+        assert_eq!(dl.delta().text_runs.adds[0].key.glyphs.len(), 2);
+        let items = text_items(&dl);
+        assert_eq!(items.len(), 3);
+        assert_eq!(items[0].text_run, items[1].text_run);
+    }
+
+    #[test]
+    fn an_unchanged_run_is_not_re_sent_next_build() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        let glyphs = [glyph(1, 0.0)];
+
+        builder.begin(60.0);
+        push_run(&mut builder, &glyphs, ColorF::BLACK);
+        let (_, first) = builder.end();
+        assert_eq!(first.delta().text_runs.adds.len(), 1);
+
+        // The same run in the next list: the builder is retained, so it stays
+        // interned and nothing about it goes on the wire again.
+        builder.begin(60.0);
+        push_run(&mut builder, &glyphs, ColorF::BLACK);
+        let (_, second) = builder.end();
+        assert!(second.delta().text_runs.is_empty());
+    }
+
+    #[test]
+    fn primitive_flags_are_part_of_the_key() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        let glyphs = [glyph(1, 0.0)];
+        push_run_with_flags(&mut builder, &glyphs, ColorF::BLACK, di::PrimitiveFlags::default());
+        push_run_with_flags(&mut builder, &glyphs, ColorF::BLACK, di::PrimitiveFlags::empty());
+
+        let (_, dl) = builder.end();
+        assert_eq!(dl.delta().text_runs.adds.len(), 2);
+    }
+
+    #[test]
+    fn raster_space_is_part_of_the_key() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        let glyphs = [glyph(1, 0.0)];
+        push_run(&mut builder, &glyphs, ColorF::BLACK);
+
+        // Same run again, but under a stacking context that changes the raster
+        // space it will be rasterized in.
+        builder.push_stacking_context(
+            di::SpatialId::root_scroll_node(PipelineId::dummy()),
+            di::PrimitiveFlags::default(),
+            None,
+            di::TransformStyle::Flat,
+            di::MixBlendMode::Normal,
+            &[],
+            &[],
+            di::RasterSpace::Local(2.0),
+            di::StackingContextFlags::empty(),
+            None,
+        );
+        push_run(&mut builder, &glyphs, ColorF::BLACK);
+        builder.pop_stacking_context();
+
+        let (_, dl) = builder.end();
+        assert_eq!(dl.delta().text_runs.adds.len(), 2);
+    }
+
+    #[test]
+    fn a_run_dropped_from_the_list_is_collected() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        let glyphs = [glyph(1, 0.0)];
+
+        builder.begin(60.0);
+        push_run(&mut builder, &glyphs, ColorF::BLACK);
+        let (_, dl) = builder.end();
+        let slot = dl.delta().text_runs.adds[0].slot;
+
+        // Build empty lists until the run falls out of the retain window.
+        for _ in 0..interning::RETAIN_BUILDS - 1 {
+            builder.begin(60.0);
+            let (_, dl) = builder.end();
+            assert!(dl.delta().text_runs.is_empty());
+        }
+
+        builder.begin(60.0);
+        let (_, dl) = builder.end();
+        assert_eq!(dl.delta().text_runs.removes, vec![slot]);
+    }
+
+    #[test]
+    fn transparent_text_is_not_emitted() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        push_run(&mut builder, &[glyph(1, 0.0)], ColorF::TRANSPARENT);
+
+        let (_, dl) = builder.end();
+        assert!(text_items(&dl).is_empty(), "invisible text reaches the scene builder");
+        assert!(dl.delta().text_runs.is_empty(), "invisible text was interned");
+    }
+
+    #[test]
+    fn transparent_text_still_casts_a_shadow() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        // `color: transparent` + `text-shadow`: the original draws nothing but
+        // the shadow copy is opaque and must survive.
+        push_shadow(&mut builder, ColorF::BLACK, 3.0);
+        push_run(&mut builder, &[glyph(1, 0.0)], ColorF::TRANSPARENT);
+        builder.pop_all_shadows();
+
+        let (_, dl) = builder.end();
+        let items = text_items(&dl);
+        assert_eq!(items.len(), 1, "expected only the shadow copy");
+        assert_ne!(items[0].text_run, interning::Handle::INVALID);
+
+        // Colour and shadow mode reach the scene builder through the key, so
+        // that is where they are checked.
+        let adds = &dl.delta().text_runs.adds;
+        assert_eq!(adds.len(), 1);
+        assert_eq!(adds[0].key.color, ColorF::BLACK.into());
+        assert_eq!(adds[0].key.shadow, di::GlyphShadowMode::Blurred);
+        assert_eq!(adds[0].key.requested_raster_space, di::RasterSpace::Local(1.0));
+    }
+
+    #[test]
+    fn a_transparent_shadow_casts_nothing() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        push_shadow(&mut builder, ColorF::TRANSPARENT, 3.0);
+        push_run(&mut builder, &[glyph(1, 0.0)], ColorF::BLACK);
+        builder.pop_all_shadows();
+
+        let (_, dl) = builder.end();
+        let items = text_items(&dl);
+        assert_eq!(items.len(), 1, "expected only the original");
+
+        let adds = &dl.delta().text_runs.adds;
+        assert_eq!(adds.len(), 1);
+        assert_eq!(adds[0].key.color, ColorF::BLACK.into());
+        assert_eq!(adds[0].key.shadow, di::GlyphShadowMode::None);
+    }
+
+    #[test]
+    fn a_long_run_is_split_and_interned_per_chunk() {
+        let mut builder = DisplayListBuilder::new(PipelineId::dummy());
+        builder.begin(60.0);
+
+        // Each chunk becomes its own primitive, so each needs its own entry.
+        let glyphs: Vec<GlyphInstance> = (0..MAX_TEXT_RUN_LENGTH as u32 + 1)
+            .map(|i| glyph(i, i as f32))
+            .collect();
+        push_run(&mut builder, &glyphs, ColorF::BLACK);
+
+        let (_, dl) = builder.end();
+        assert_eq!(dl.delta().text_runs.adds.len(), 2);
+        assert_eq!(text_items(&dl).len(), 2);
     }
 }
 

@@ -20,8 +20,8 @@ origin:
 
   # Human-readable identifier for this version/release
   # Generally "version NNN", "tag SSS", "bookmark SSS"
-  release: 22f5df1269b3ac950f80dd9fc25523ab4836c124 (2026-10-29T15:48:41Z).
-  revision: 22f5df1269b3ac950f80dd9fc25523ab4836c124
+  release: 1c3fdc2597152fceb15768742bfd29107d5b742e (2026-11-05T11:39:59Z).
+  revision: 1c3fdc2597152fceb15768742bfd29107d5b742e
 
   # The package's license, where possible using the mnemonic from
   # https://spdx.org/licenses/

@@ -61,6 +61,7 @@ var gExceptionPaths = [
   // wasm is not available.
   "resource://pdf.js/web/wasm/openjpeg_nowasm_fallback.js",
   "resource://pdf.js/web/wasm/jbig2_nowasm_fallback.js",
+  "resource://pdf.js/web/wasm/hellbox_nowasm_fallback.js",
 
   // Exclude the form autofill path that has been moved out of the extensions to
   // toolkit, see bug 1691821.
@@ -206,7 +207,7 @@ var allowlist = [
   // extensions/pref/autoconfig/src/nsReadConfig.cpp
   { file: "resource://gre/defaults/autoconfig/prefcalls.js" },
 
-  // browser/components/preferences/moreFromMozilla.js
+  // browser/components/preferences/config/moreFromMozilla.mjs
   // These files URLs are constructed programatically at run time.
   {
     file: "chrome://browser/content/preferences/more-from-mozilla-qr-code-simple.svg",
@@ -378,14 +379,6 @@ if (AppConstants.platform != "win") {
   allowlist.push({
     file: "resource://app/localization/en-US/browser/backgroundtasks/defaultagent.ftl",
   });
-
-  if (AppConstants.NIGHTLY_BUILD) {
-    // This path is refereneced in nsFxrCommandLineHandler.cpp, which is only
-    // compiled in Windows. This path is allowed so that non-Windows builds
-    // can access the FxR UI via --chrome rather than --fxr (which includes VR-
-    // specific functionality)
-    allowlist.push({ file: "chrome://fxr/content/fxrui.html" });
-  }
 }
 
 if (AppConstants.platform == "android") {

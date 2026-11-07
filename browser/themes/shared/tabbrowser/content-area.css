@@ -908,23 +908,91 @@ split-view-footer {
     display: block;
   }
 
-  &[copied] {
-    #more-actions-button,
-    #more-actions-separator {
-      display: none;
+  &[copied] #more-actions-button {
+    display: none;
+  }
+}
+
+@media -moz-pref("browser.highlightToSearch.featureGate") {
+  #selection-shortcut-action-panel {
+    --selection-button-size: 36px;
+    --panel-subview-body-padding: 1px;
+
+    moz-button {
+      --button-min-height: var(--selection-button-size);
+      --button-size-icon: var(--selection-button-size);
+    }
+
+    #ai-action-button::part(button)::after {
+      margin-inline-start: var(--space-xsmall);
+    }
+
+    .copy-action-confirmation {
+      block-size: var(--selection-button-size);
+      margin-block: 1px;
+    }
+
+    .copy-action-confirmation-icon {
+      inline-size: var(--selection-button-size);
+      block-size: var(--selection-button-size);
+    }
+  }
+
+  #selection-more-actions-panel > .panel-subview-body {
+    font: menu;
+  }
+}
+
+#selection-more-actions-panel {
+  --selection-row-icon-inset: calc((var(--size-item-large) - var(--icon-size)) / 2);
+  --selection-row-switch-inset: calc((var(--size-item-large) - var(--size-item-small)) / 2);
+
+  &::part(content) {
+    padding: var(--space-small);
+  }
+
+  > .panel-subview-body {
+    gap: 0;
+    padding-block: 0;
+  }
+
+  moz-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: var(--size-item-large);
+    padding-inline: var(--selection-row-icon-inset) var(--selection-row-switch-inset);
+    border-radius: var(--button-border-radius);
+    --space-small: var(--selection-row-icon-inset);
+
+    &:hover {
+      background-color: var(--button-background-color-ghost-hover);
+      color: var(--button-text-color-ghost-hover);
     }
   }
 }
 
-#selection-more-actions-panel > .panel-subview-body {
-  gap: var(--space-medium);
+#more-actions-manage-settings {
+  --manage-settings-start: calc(var(--selection-row-icon-inset) - var(--border-width));
+  --manage-settings-end: calc(var(--selection-row-switch-inset) + var(--size-item-large) + var(--space-medium));
+  --button-padding: var(--space-xsmall) var(--manage-settings-end) var(--space-xsmall) var(--manage-settings-start);
+  --button-font-weight: normal;
+  --space-small: var(--selection-row-icon-inset);
+
+  &:dir(rtl) {
+    --button-padding: var(--space-xsmall) var(--manage-settings-start) var(--space-xsmall) var(--manage-settings-end);
+  }
 }
 
 .more-actions-notice {
-  /* Wrap the notice instead of letting it stretch the panel to one long line. */
-  max-width: 260px;
-  margin: 0;
-  color: var(--text-color-deemphasized);
+  /* Take the width of the rows instead of stretching the panel. */
+  width: 0;
+  min-width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 var(--space-xsmall);
+  padding: var(--space-small) var(--space-medium);
+  border-radius: var(--border-radius-large);
+  background-color: var(--background-color-warning);
 }
 
 .more-actions-notice-chevron {
@@ -1117,6 +1185,18 @@ split-view-footer {
   max-width: 345px;
 }
 
+@media -moz-pref("browser.highlightToSearch.featureGate") {
+  #ask-chat-shortcuts {
+    min-width: 240px;
+    max-width: 320px;
+
+    toolbarbutton.subviewbutton {
+      min-height: var(--size-item-large);
+      padding-block: 0;
+    }
+  }
+}
+
 .ask-chat-shortcut-warning {
   margin: var(--panel-menuitem-margin);
   margin-bottom: var(--space-xsmall);
@@ -1144,6 +1224,7 @@ split-view-footer {
      be defined when DevTools is not visible/docked to a different position so we need
      to provide meaningful fallback in those cases.
   */
+  /* physical left/right are more appropriate than the equivalent logical properties here */
   left: max(anchor(--browser-with-dialog left), anchor(--devtools-left-host right, 0));
   right: max(anchor(--browser-with-dialog right), anchor(--devtools-right-host left, 0));
   bottom: max(anchor(--browser-with-dialog bottom), anchor(--devtools-bottom-host top, 0));

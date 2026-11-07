@@ -3073,6 +3073,11 @@ pref("network.tcp.keepalive.idle_time", 600); // seconds; 10 mins
   pref("geo.provider.network.timeout", 60000);
 #endif
 
+// Maximum age, in days, of a response the NetworkGeolocationProvider request
+// cache (which is persisted across browser sessions) may reuse. Clamped to
+// the range 1 to 30.
+pref("geo.provider.network.requestCache.maxAgeDays", 30);
+
 #ifdef XP_MACOSX
   pref("geo.provider.use_corelocation", true);
 #endif
@@ -4157,6 +4162,9 @@ pref("extensions.formautofill.creditCards.ignoreAutocompleteOff", true);
 // "on"/"off" values as the other supported prefs above. Nothing about the CVV
 // (cc-csc) field is offered while this is "off", including the setting that
 // lets the user turn capture on or off.
+// Given that Android also relies on this flag to determine cvv enablement, 
+// do not flip this value for all platforms and instead use platform specific 
+// checks to enable and disable this in a controlled per platform capacity.
 pref("extensions.formautofill.creditCards.cvv.supported", "off");
 // The user's own choice, exposed as a setting once the feature is supported.
 // CVVs are only captured and stored when both prefs are true; see

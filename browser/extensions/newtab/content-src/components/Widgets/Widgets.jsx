@@ -30,9 +30,10 @@ import {
   isWidgetAddable,
   isWidgetEnabled,
   resolveWidgetSize,
+  resolveWidgetDisplaySize,
   resolveWidgetOrder,
   resolveWidgetHasSidebar,
-  resolveWidgetSrc,
+  resolveWidgetFrame,
   resolveSidebarWidget,
   getHideAllTargets,
   PREF_HOME_WIDGETS,
@@ -48,7 +49,10 @@ import {
   SPACE_IDS,
   WIDGET_PLACEMENTS,
 } from "common/PageLayoutVariants.mjs";
-import { WIDGET_ROW_COMPONENTS } from "./WidgetsComponentRegistry.jsx";
+import {
+  WIDGET_CARD_COMPONENTS,
+  WIDGET_ROW_COMPONENTS,
+} from "./WidgetsComponentRegistry.jsx";
 import { WidgetWrapper } from "./WidgetWrapper";
 import { MozWidgetCard } from "./MozWidgetCard";
 // @experiment(remove) { bug 2069496 }
@@ -151,6 +155,7 @@ function Widgets({ widgetIds, placement }) {
   const prefs = useSelector(state => state.Prefs.values);
   const extensionWidgets = useSelector(state => state.ExtensionWidgets);
   const widgets = getWidgets(WIDGET_REGISTRY, extensionWidgets);
+  const framedWidgets = useSelector(state => state.FramedWidgets);
   const weatherData = useSelector(state => state.Weather);
   const { messageData } = useSelector(state => state.Messages);
   const timerType = useSelector(state => state.TimerWidget.timerType);
@@ -265,13 +270,13 @@ function Widgets({ widgetIds, placement }) {
     weatherBase && weatherData?.initialized && isWeatherEnabled;
 
   const weatherSize = resolveWidgetSize(weatherWidget, prefs);
+  const frameById = {};
   const widgetEnabledMap = {};
   for (const widget of widgets) {
-    widgetEnabledMap[widget.id] = isWidgetEnabled(
-      widget,
-      prefs,
-      widgetsEnabled
-    );
+    frameById[widget.id] = resolveWidgetFrame(widget, prefs, framedWidgets);
+    widgetEnabledMap[widget.id] =
+      isWidgetEnabled(widget, prefs, widgetsEnabled) &&
+      frameById[widget.id].state !== "hidden";
   }
   widgetEnabledMap.weather = weatherEnabled;
 
@@ -892,10 +897,19 @@ function Widgets({ widgetIds, placement }) {
                 if (novaEnabled) {
                   const Component = WIDGET_ROW_COMPONENTS[id];
                   const entry = widgets.find(w => w.id === id);
+                  const Card =
+                    WIDGET_CARD_COMPONENTS[entry?.card] ?? MozWidgetCard;
                   if (!widgetEnabledMap[id]) {
                     return null;
                   }
                   const size = entry ? resolveWidgetSize(entry, prefs) : null;
+                  const displaySize = entry
+                    ? resolveWidgetDisplaySize(
+                        entry,
+                        prefs,
+                        widgetsMayBeMaximized
+                      )
+                    : null;
                   const renderIdx = enabledWidgetIds.indexOf(id);
                   const hiddenAttrs = {
                     "data-hidden-1": hiddenAtCols[1].has(renderIdx)
@@ -915,7 +929,7 @@ function Widgets({ widgetIds, placement }) {
                       : undefined,
                   };
                   const wrapperClassName = [
-                    size && `${size}-widget`,
+                    displaySize && `${displaySize}-widget`,
                     "widget-draggable",
                   ]
                     .filter(Boolean)
@@ -940,11 +954,12 @@ function Widgets({ widgetIds, placement }) {
                             widgetEnabledMap={widgetEnabledMap}
                           />
                         ) : (
-                          <MozWidgetCard
+                          <Card
                             dispatch={dispatch}
                             entry={entry}
                             size={size}
-                            src={resolveWidgetSrc(entry, prefs)}
+                            displaySize={displaySize}
+                            src={frameById[id]?.src}
                             widgetEnabledMap={widgetEnabledMap}
                           />
                         )}
