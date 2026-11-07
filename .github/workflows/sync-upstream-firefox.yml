@@ -1,0 +1,117 @@
+name: Sync upstream Firefox
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - setup/firefox-upstream-sync
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    name: Merge Mozilla Firefox into Crowi
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force || true
+          df -h /
+
+      - name: Checkout Crowi with full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Preserve Crowi branding
+        run: |
+          test -d browser/branding/crowi
+          mkdir -p "$RUNNER_TEMP/crowi-branding"
+          cp -a browser/branding/crowi "$RUNNER_TEMP/crowi-branding/"
+
+      - name: Fetch upstream Firefox
+        run: |
+          git remote add upstream https://github.com/mozilla-firefox/firefox.git
+          git fetch --no-tags upstream main
+
+      - name: Merge upstream into a separate branch
+        id: merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          SYNC_BRANCH="sync-firefox-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "sync_branch=$SYNC_BRANCH" >> "$GITHUB_OUTPUT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$SYNC_BRANCH"
+
+          set +e
+          git merge --no-edit -X theirs upstream/main
+          MERGE_STATUS=$?
+          set -e
+
+          if [ "$MERGE_STATUS" -ne 0 ]; then
+            if ! git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+              echo "Merge failed before Git could create a merge state."
+              exit "$MERGE_STATUS"
+            fi
+
+            echo "Resolving remaining conflicts in favor of upstream Firefox."
+            while IFS= read -r -d '' FILE; do
+              echo "Conflict: $FILE"
+              case "$FILE" in
+                browser/branding/crowi/*)
+                  git checkout --ours -- "$FILE" || true
+                  ;;
+                *)
+                  if git checkout --theirs -- "$FILE"; then
+                    :
+                  else
+                    git rm -f -- "$FILE" || true
+                  fi
+                  ;;
+              esac
+            done < <(git diff --name-only --diff-filter=U -z)
+
+            git add -A
+            git commit -m "Merge upstream Firefox into Crowi"
+          fi
+
+      - name: Restore Crowi branding and verify custom files
+        run: |
+          mkdir -p browser/branding
+          rm -rf browser/branding/crowi
+          cp -a "$RUNNER_TEMP/crowi-branding/crowi" browser/branding/crowi
+          test -d browser/branding/crowi
+          test -f browser/branding/crowi/branding.nsi || find browser/branding/crowi -maxdepth 2 -type f | head -30
+          test -f browser/themes/addons/aiwindow-nova/manifest.in.json
+          git add browser/branding/crowi
+          if ! git diff --cached --quiet; then
+            git commit -m "Preserve Crowi branding after upstream sync"
+          fi
+
+      - name: Push sync branch
+        env:
+          SYNC_BRANCH: ${{ steps.merge.outputs.sync_branch }}
+        run: git push origin "HEAD:$SYNC_BRANCH"
+
+      - name: Open sync pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SYNC_BRANCH: ${{ steps.merge.outputs.sync_branch }}
+        run: |
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$SYNC_BRANCH" \
+            --title "Sync upstream Firefox into Crowi" \
+            --body "Automated upstream sync from mozilla-firefox/firefox:main.
+
+          The merge was performed on a separate branch. Crowi branding was explicitly restored after the merge. Overlapping source-code conflicts prefer upstream Firefox; review the diff and run Crowi builds before merging."
