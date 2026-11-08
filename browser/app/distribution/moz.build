@@ -8,3 +8,12 @@ if CONFIG["BUILT_BY_MOZILLA"]:
     FINAL_TARGET_FILES.distribution += [
         "distribution.ini",
     ]
+
+# Crowi: extensions bundled with the browser. Firefox installs every
+# distribution/extensions/<addon-id>.xpi into new profiles on first run, so each
+# file name must match the add-on's ID. Bundled: uBlock Origin, Stylus, Dark Mode.
+FINAL_TARGET_FILES.distribution.extensions += [
+    "extensions/uBlock0@raymondhill.net.xpi",
+    "extensions/{174b2d58-b983-4501-ab4b-07e71203cb43}.xpi",
+    "extensions/{7a7a4a92-a2a0-41d1-9fd7-1e92480d612d}.xpi",
+]

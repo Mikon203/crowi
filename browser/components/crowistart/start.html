@@ -1,0 +1,94 @@
+<!doctype html>
+
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src chrome:; style-src chrome:; img-src chrome: data:; form-action https:; base-uri 'none'; object-src 'none'"
+    />
+    <title>Crowi</title>
+    <link rel="stylesheet" href="chrome://browser/content/crowi/start.css" />
+    <script src="chrome://browser/content/crowi/start.js" defer></script>
+  </head>
+  <body>
+    <div class="backdrop" aria-hidden="true">
+      <span class="blob blob-a"></span>
+      <span class="blob blob-b"></span>
+      <span class="blob blob-c"></span>
+      <span class="grid"></span>
+    </div>
+
+    <main class="page">
+      <header class="brand">
+        <img
+          class="brand-logo"
+          src="chrome://branding/content/about-logo.svg"
+          alt=""
+          width="44"
+          height="44"
+        />
+        <span class="brand-name">Crowi</span>
+      </header>
+
+      <section class="hero" aria-label="Time and greeting">
+        <p class="date" id="date"></p>
+        <h1 class="clock" id="clock">--:--</h1>
+        <p class="greeting" id="greeting"></p>
+      </section>
+
+      <form class="search" id="search" action="https://duckduckgo.com/" method="get" role="search">
+        <label class="visually-hidden" for="query">Search the web</label>
+        <svg class="search-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2" />
+          <path d="M16 16l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+        <input
+          id="query"
+          class="search-input"
+          type="search"
+          name="q"
+          placeholder="Search the web"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <kbd class="search-hint" aria-hidden="true">/</kbd>
+      </form>
+
+      <div class="engines" id="engines" role="radiogroup" aria-label="Search engine"></div>
+
+      <nav class="shortcuts" aria-label="Shortcuts">
+        <ul class="tiles" id="tiles"></ul>
+      </nav>
+
+      <footer class="foot">
+        <span>Press <kbd>/</kbd> to search</span>
+      </footer>
+    </main>
+
+    <dialog class="dialog" id="add-dialog" aria-labelledby="add-title">
+      <form method="dialog" id="add-form" class="dialog-form">
+        <h2 id="add-title">Add shortcut</h2>
+        <label class="field">
+          <span>Name</span>
+          <input id="add-name" type="text" autocomplete="off" maxlength="24" />
+        </label>
+        <label class="field">
+          <span>Address</span>
+          <input id="add-url" type="text" autocomplete="off" placeholder="example.com" required />
+        </label>
+        <p class="dialog-error" id="add-error" role="alert" hidden>That doesn’t look like a web address.</p>
+        <div class="dialog-actions">
+          <button type="button" class="btn" id="add-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

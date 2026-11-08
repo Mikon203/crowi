@@ -339,7 +339,10 @@ pref("browser.shell.setDefaultPDFHandler.attemptWaitTimeMs", 30000);
 // The behavior of option 3 is detailed at: http://wiki.mozilla.org/Session_Restore
 pref("browser.startup.page",                1);
 pref("browser.startup.homepage",            "about:home");
-pref("browser.startup.homepage.abouthome_cache.enabled", true);
+// Crowi: the about:home startup cache is built from Activity Stream, which the
+// Crowi start page replaces, so keep it off. See crowi.start.enabled.
+pref("browser.startup.homepage.abouthome_cache.enabled", false);
+pref("crowi.start.enabled", true);
 pref("browser.startup.homepage.abouthome_cache.loglevel", "Warn");
 
 // Whether we should skip the homepage when opening the first-run page

@@ -102,6 +102,12 @@ jobs:
       - name: Package
         run: ./mach package
 
+      - name: Verify bundled extensions
+        run: |
+          pkg=$(ls obj-crowi/dist/*.tar.* | head -n 1)
+          tar -tf "$pkg" | grep -E 'distribution/extensions/.+\.xpi$' | tee bundled.txt
+          test "$(wc -l < bundled.txt)" -ge 3
+
       - name: Collect artifact
         run: |
           mkdir -p dist-out
@@ -205,6 +211,12 @@ jobs:
 
       - name: Package
         run: ./mach package
+
+      - name: Verify bundled extensions
+        run: |
+          pkg=$(ls obj-crowi-win/dist/*.zip | head -n 1)
+          unzip -Z1 "$pkg" | grep -E 'distribution/extensions/.+\.xpi$' | tee bundled.txt
+          test "$(wc -l < bundled.txt)" -ge 3
 
       - name: Collect artifact
         run: |

@@ -33,6 +33,7 @@ DIRS += [
     "contextualidentity",
     "controlcenter",
     "miniwindow",
+    "crowistart",
     "customizableui",
     "customkeys",
     "downloads",

@@ -56,6 +56,11 @@ const CACHE_WORKER_URL = "resource://newtab/lib/cache.worker.js";
 const IS_PRIVILEGED_PROCESS =
   Services.appinfo.remoteType === E10SUtils.PRIVILEGEDABOUT_REMOTE_TYPE;
 
+// Crowi: when this pref is true (the default), about:home and about:newtab
+// show Crowi's own start page instead of Activity Stream.
+const PREF_CROWI_START_ENABLED = "crowi.start.enabled";
+const CROWI_START_URL = "chrome://browser/content/crowi/start.html";
+
 const PREF_ACTIVITY_STREAM_DEBUG = "browser.newtabpage.activity-stream.debug";
 const PREF_NEWTAB_SELF_LOADING =
   "browser.newtabpage.activity-stream.selfLoading.enabled";
@@ -405,6 +410,13 @@ class BaseAboutNewTabRedirector {
 
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
+      "crowiStartEnabled",
+      PREF_CROWI_START_ENABLED,
+      true
+    );
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
       "selfLoadingEnabled",
       PREF_NEWTAB_SELF_LOADING,
       false
@@ -425,6 +437,10 @@ class BaseAboutNewTabRedirector {
    * the newtab page has no effect on the result of this function.
    */
   get defaultURL() {
+    if (this.crowiStartEnabled) {
+      return CROWI_START_URL;
+    }
+
     if (this.remoteRendererEnabled) {
       return "resource://newtab/data/content/remote-renderer-host.html";
     }
