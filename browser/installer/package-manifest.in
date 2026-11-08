@@ -472,3 +472,4 @@ bin/libfreebl_64int_3.so
 
 ; Crowi: always ship distribution/ (bundled extensions), not just in Mozilla builds.
 @RESPATH@/distribution/*
+@RESPATH@/distribution/extensions/*
